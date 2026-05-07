@@ -412,7 +412,7 @@
 						.replace(/height="[^"]*"/g, '');
 					processedSvg = processedSvg.replace(
 						/<svg\b([^>]*)>/,
-						'<svg$1 width="100%" height="100%" preserveAspectRatio="none">'
+						'<svg$1 width="100%" height="100%" preserveAspectRatio="xMidYMid meet">'
 					);
 					if (!useOriginalIconColor) {
 						processedSvg = processedSvg.replace(/fill="[^"]*"/g, 'fill="currentColor"');

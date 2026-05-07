@@ -183,9 +183,8 @@
 					>
 						<div
 							style="
-								width: {iconSize}px; 
-								height: {iconSize}px; 
-								aspect-ratio: 1 / 1;
+								max-width: {iconSize}px;
+								max-height: {iconSize}px;
 								flex-shrink: 0;
 								color: {useOriginalIconColor ? 'inherit' : iconColor}; 
 								filter: drop-shadow({iconShadow.x}px {iconShadow.y}px {iconShadow.blur}px {hexToRgba(
@@ -271,7 +270,6 @@
 	.icon-svg-box {
 		width: 100%;
 		height: 100%;
-		aspect-ratio: 1 / 1;
 	}
 	.icon-svg-box :global(svg) {
 		width: 100% !important;
