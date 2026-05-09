@@ -186,7 +186,9 @@
 		{/each}
 	</div>
 
-	<Separator class="max-w-xs mo-fade-in" use:fadeIn />
+	<div class="flex justify-center mo-fade-in" use:fadeIn>
+		<Separator class="max-w-xs" />
+	</div>
 
 	<!-- 导航按钮 -->
 	<div class="flex flex-wrap gap-3 justify-center mo-stagger" use:staggerChildren>
@@ -223,7 +225,9 @@
 		</a>
 	</div>
 
-	<Separator class="max-w-xs mo-fade-in" use:fadeIn />
+	<div class="flex justify-center mo-fade-in" use:fadeIn>
+		<Separator class="max-w-xs" />
+	</div>
 
 	<SponsorBanners />
 </div>
