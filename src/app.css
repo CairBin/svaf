@@ -168,3 +168,22 @@
 	.markdown-alert-warning { --alert-color: oklch(0.7 0.18 80); }
 	.markdown-alert-caution { --alert-color: var(--destructive); }
 }
+
+/* 页面切换淡入淡出 */
+::view-transition-old(root) {
+	animation: fade-out 0.2s ease-in forwards;
+}
+
+::view-transition-new(root) {
+	animation: fade-in 0.2s ease-out forwards;
+}
+
+@keyframes fade-out {
+	from { opacity: 1; }
+	to { opacity: 0; }
+}
+
+@keyframes fade-in {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}

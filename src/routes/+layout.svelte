@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/stores';
+	import { onNavigate } from '$app/navigation';
 	import { siteConfig } from '$lib/config/site';
 	import BackToTop from '$lib/components/BackToTop.svelte';
 	import NavBar from '$lib/components/NavBar.svelte';
@@ -14,6 +15,17 @@
 
 	// 文章详情页自己输出 og:image / twitter:image / og:title 等，避免重复
 	let isPostDetail = $derived(/^\/posts\/[^/]+\/?$/.test($page.url.pathname));
+
+	onNavigate((navigation) => {
+		if (!document.startViewTransition) return;
+
+		return new Promise((resolve) => {
+			document.startViewTransition(async () => {
+				resolve();
+				await navigation.complete;
+			});
+		});
+	});
 </script>
 
 <svelte:head>
