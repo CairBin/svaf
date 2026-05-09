@@ -160,10 +160,10 @@
 				</p>
 			</div>
 		{/if}
-		<p class="text-sm text-muted-foreground">
-			共 {data.totalPosts} 篇文章 · 总计 {data.totalWords.toLocaleString()} 字
-		</p>
 	</div>
+	<p class="text-center text-sm text-muted-foreground">
+		共 {data.totalPosts} 篇文章 · 总计 {data.totalWords.toLocaleString()} 字
+	</p>
 
 	<!-- 课程表卡片 -->
 	<div class="w-full max-w-xs mo-fade-in" use:fadeIn={{ delay: 0.2 }}>
