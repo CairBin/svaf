@@ -8,7 +8,6 @@
 :root {
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.145 0 0);
-	--grid-color: #e2e8f0;
 	--card: oklch(1 0 0);
 	--card-foreground: oklch(0.145 0 0);
 	--popover: oklch(1 0 0);
@@ -45,7 +44,6 @@
 	--background: oklch(0.145 0 0);
 	--foreground: oklch(0.985 0 0);
 	--card: oklch(0.205 0 0);
-	--grid-color: #1e293b;
 	--card-foreground: oklch(0.985 0 0);
 	--popover: oklch(0.205 0 0);
 	--popover-foreground: oklch(0.985 0 0);
@@ -132,23 +130,6 @@
 	}
 }
 
-/* 网格背景 */
-.grid-background {
-	position: fixed;
-	top: 0;
-	right: 0;
-	bottom: 0;
-	left: 0;
-	z-index: -1;
-	background-image:
-		linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
-		linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
-	background-size: 20px 30px;
-	-webkit-mask-image: radial-gradient(ellipse 70% 75% at 50% 0%, #000 60%, transparent 100%);
-	mask-image: radial-gradient(ellipse 70% 75% at 50% 0%, #000 60%, transparent 100%);
-}
-
-
 /* GitHub 风格提示块 —— 文章 (mdsvex/remark) 与论坛 (markdown-it) 共用 */
 @layer components {
 	.markdown-alert {
@@ -186,6 +167,11 @@
 	.markdown-alert-important { --alert-color: oklch(0.55 0.2 300); }
 	.markdown-alert-warning { --alert-color: oklch(0.7 0.18 80); }
 	.markdown-alert-caution { --alert-color: var(--destructive); }
+}
+
+/* 代码块统一背景色 */
+pre code.hljs {
+	background: transparent;
 }
 
 /* 隐藏代码块滚动条（Shift+滚轮 / 触屏仍可滚动） */
