@@ -12,7 +12,8 @@
 	});
 
 	$effect(() => {
-		void $isDark;
+		const dark = $isDark;
+		console.log(`[mermaid] $effect fired, isDark=${dark}`);
 		rerenderAllMermaid();
 	});
 </script>

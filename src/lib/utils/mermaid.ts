@@ -81,6 +81,8 @@ export async function renderMermaidIn(container: HTMLElement | null | undefined)
 	renderDone = new Promise<void>((r) => { resolveRender = r; });
 	renderDoneResolve = resolveRender!;
 
+	console.log('[mermaid] renderMermaidIn called');
+
 	const candidates = new Set<HTMLElement>();
 	for (const el of Array.from(
 		container.querySelectorAll<HTMLElement>('pre[data-language="mermaid"]')
@@ -92,14 +94,20 @@ export async function renderMermaidIn(container: HTMLElement | null | undefined)
 		const pre = code.closest('pre') as HTMLElement | null;
 		if (pre) candidates.add(pre);
 	}
-	if (candidates.size === 0) return;
+	if (candidates.size === 0) {
+		console.log('[mermaid] no candidates found, resolving immediately');
+		renderDoneResolve?.();
+		return;
+	}
 	console.log(`[mermaid] found ${candidates.size} blocks in container`);
 
 	const mermaid = await getMermaid();
 	const isDark = document.documentElement.classList.contains('dark');
 	const currentTheme = isDark ? 'dark' : 'default';
+	console.log(`[mermaid] initialized=${initialized}, lastTheme=${lastTheme}, currentTheme=${currentTheme}`);
 	if (!initialized || currentTheme !== lastTheme) {
 		lastTheme = currentTheme;
+		console.log(`[mermaid] initializing with theme: ${lastTheme}`);
 		mermaid.initialize({
 			startOnLoad: false,
 			theme: lastTheme,
@@ -121,7 +129,7 @@ export async function renderMermaidIn(container: HTMLElement | null | undefined)
 			wrapper.innerHTML = svg;
 			renderedBlocks.set(wrapper, code);
 			pre.replaceWith(wrapper);
-			console.log(`[mermaid] block ${i}: rendered`);
+			console.log(`[mermaid] block ${i}: rendered, stored in renderedBlocks`);
 		} catch (err) {
 			console.error('[mermaid] render failed:', err);
 			const errEl = document.createElement('pre');
@@ -131,6 +139,7 @@ export async function renderMermaidIn(container: HTMLElement | null | undefined)
 		}
 	}
 
+	console.log(`[mermaid] renderMermaidIn done, renderedBlocks.size=${renderedBlocks.size}`);
 	renderDoneResolve?.();
 }
 
@@ -138,13 +147,20 @@ export async function renderMermaidIn(container: HTMLElement | null | undefined)
  * 重新渲染所有已渲染的 mermaid 块（用于主题切换）
  */
 export async function rerenderAllMermaid() {
+	console.log(`[mermaid] rerenderAllMermaid called, waiting for renderDone...`);
 	await renderDone;
+	console.log(`[mermaid] renderDone resolved, renderedBlocks.size=${renderedBlocks.size}`);
 	const mermaid = await getMermaid();
 	const isDark = document.documentElement.classList.contains('dark');
 	const newTheme = isDark ? 'dark' : 'default';
-	if (newTheme === lastTheme) return;
+	console.log(`[mermaid] rerender: lastTheme=${lastTheme}, newTheme=${newTheme}`);
+	if (newTheme === lastTheme) {
+		console.log('[mermaid] rerender: theme unchanged, skipping');
+		return;
+	}
 
 	lastTheme = newTheme;
+	console.log(`[mermaid] re-initializing with theme: ${newTheme}`);
 	mermaid.initialize({
 		startOnLoad: false,
 		theme: newTheme,
@@ -156,11 +172,14 @@ export async function rerenderAllMermaid() {
 	for (const [wrapper, code] of renderedBlocks) {
 		const id = `mermaid-rerender-${Date.now()}-${i++}`;
 		try {
+			console.log(`[mermaid] re-rendering block ${i}...`);
 			const { svg } = await mermaid.render(id, code);
 			wrapper.innerHTML = svg;
+			console.log(`[mermaid] block ${i} re-rendered`);
 		} catch (err) {
 			console.error('[mermaid] re-render failed:', err);
 		}
 	}
+	console.log(`[mermaid] rerenderAllMermaid done, ${i} blocks re-rendered`);
 }
 
