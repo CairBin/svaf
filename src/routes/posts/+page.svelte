@@ -329,12 +329,11 @@
 									<time class="text-sm text-muted-foreground">
 										{formatDate(post.metadata.published)}
 									</time>
-									{@const stats = getPostStats(post.slug)}
-									{#if stats}
+									{#if getPostStats(post.slug)}
 										<span class="text-sm text-muted-foreground">·</span>
-										<span class="text-sm text-muted-foreground">{stats.wordCount} 字</span>
+										<span class="text-sm text-muted-foreground">{getPostStats(post.slug)!.wordCount} 字</span>
 										<span class="text-sm text-muted-foreground">·</span>
-										<span class="text-sm text-muted-foreground">约 {stats.readTime} 分钟</span>
+										<span class="text-sm text-muted-foreground">约 {getPostStats(post.slug)!.readTime} 分钟</span>
 									{/if}
 									{#if pageViews[post.slug]}
 										<span class="text-sm text-muted-foreground">·</span>
