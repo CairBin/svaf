@@ -53,8 +53,6 @@
 	<link rel="alternate" type="application/rss+xml" title="{siteConfig.title} RSS Feed" href="/rss.xml" />
 </svelte:head>
 
-<div class="grid-background"></div>
-
 <NavBar />
 
 {@render children()}

@@ -37,9 +37,9 @@ export const siteConfig = {
 			},
 			{
 				name: 'GitHub',
-				icon: 'simple-icons:github',
+				icon: 'mdi:github',
 				url: 'https://github.com/afoim',
-				color: '#333333'
+				color: ''
 			},
 			{
 				name: 'Folo',
