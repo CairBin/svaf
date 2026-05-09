@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import { renderMermaidIn, watchMermaidTheme } from '$lib/utils/mermaid';
+	import { renderMermaidIn, rerenderAllMermaid } from '$lib/utils/mermaid';
+	import { isDark } from '$lib/stores/theme';
 
 	let { selector = '.prose' }: { selector?: string } = $props();
 
@@ -8,7 +9,10 @@
 		await tick();
 		const container = document.querySelector(selector) as HTMLElement | null;
 		renderMermaidIn(container);
-		const cleanup = watchMermaidTheme();
-		return cleanup;
+	});
+
+	$effect(() => {
+		void $isDark;
+		rerenderAllMermaid();
 	});
 </script>

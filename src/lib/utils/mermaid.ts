@@ -152,16 +152,3 @@ export async function rerenderAllMermaid() {
 	}
 }
 
-/**
- * 监听明暗主题变化，自动重新渲染 mermaid 块
- */
-export function watchMermaidTheme() {
-	const observer = new MutationObserver(() => {
-		rerenderAllMermaid();
-	});
-	observer.observe(document.documentElement, {
-		attributes: true,
-		attributeFilter: ['class']
-	});
-	return () => observer.disconnect();
-}
