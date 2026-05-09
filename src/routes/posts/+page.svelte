@@ -456,7 +456,23 @@
 	{/if}
 	
 	{#if totalPages > 1}
-		<div class="mt-8 flex justify-center">
+		<div class="mt-8 flex flex-col items-center gap-4">
+			<div class="flex items-center gap-1.5 text-sm text-muted-foreground">
+				<span>共 {totalPages} 页 / {filteredPostsWithMatches.length} 个，跳至</span>
+				<input
+					type="number"
+					min="1"
+					max={totalPages}
+					class="h-7 w-14 rounded border bg-transparent px-1.5 text-center text-foreground outline-none focus:ring-1 focus:ring-primary"
+					onkeydown={(e) => {
+						if (e.key === 'Enter') {
+							const v = Math.max(1, Math.min(totalPages, Number((e.target as HTMLInputElement).value)));
+							currentPage = v;
+						}
+					}}
+				/>
+				<span>页</span>
+			</div>
 			<Pagination.Root count={filteredPostsWithMatches.length} perPage={postsPerPage} bind:page={currentPage}>
 				{#snippet children({ pages })}
 					<Pagination.Content>
