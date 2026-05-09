@@ -8,41 +8,107 @@ hide: true
 lang: ""
 ---
 
+<script>
+  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
+</script>
+
 ## Cookie 与本地存储
 
 ### 必要（始终加载）
 
 以下服务在所有页面加载时运行，无法通过 Cookie 设置关闭：
 
-| 服务 | 说明 |
-|------|------|
-| [Umami](https://u.2x.nz)（自托管） | 收集匿名访问数据，用于统计浏览量 |
-| [Cloudflare Web Analytics](https://www.cloudflare.com/analytics/) | 收集匿名访问数据，无 Cookie、无指纹追踪 |
-| CF Umami（辅助统计） | 用于全站浏览量计数，同时作为浏览量 API 端点 |
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>服务</TableHead>
+      <TableHead>说明</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell><a href="https://u.2x.nz">Umami</a>（自托管）</TableCell>
+      <TableCell>收集匿名访问数据，用于统计浏览量</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell><a href="https://www.cloudflare.com/analytics/">Cloudflare Web Analytics</a></TableCell>
+      <TableCell>收集匿名访问数据，无 Cookie、无指纹追踪</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>CF Umami（辅助统计）</TableCell>
+      <TableCell>用于全站浏览量计数，同时作为浏览量 API 端点</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
 
 ### 功能（需用户同意）
 
-| 服务 | 说明 |
-|------|------|
-| [Giscus](https://giscus.app) | 基于 GitHub Discussions 的评论系统，用户交互时受 [GitHub 隐私政策](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement)约束 |
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>服务</TableHead>
+      <TableHead>说明</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell><a href="https://giscus.app">Giscus</a></TableCell>
+      <TableCell>基于 GitHub Discussions 的评论系统，用户交互时受 <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement">GitHub 隐私政策</a>约束</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
 
 ### 分析（需用户同意）
 
-| 服务 | 说明 |
-|------|------|
-| [百度统计](https://tongji.baidu.com/) | 收集站点访问情况 |
-| [Google Analytics (GA4)](https://analytics.google.com) | 收集站点访问情况 |
-| [Microsoft Clarity](https://clarity.microsoft.com) | 收集用户行为分析数据 |
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>服务</TableHead>
+      <TableHead>说明</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell><a href="https://tongji.baidu.com/">百度统计</a></TableCell>
+      <TableCell>收集站点访问情况</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell><a href="https://analytics.google.com">Google Analytics (GA4)</a></TableCell>
+      <TableCell>收集站点访问情况</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell><a href="https://clarity.microsoft.com">Microsoft Clarity</a></TableCell>
+      <TableCell>收集用户行为分析数据</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
 
 ### 本地存储
 
 我们使用浏览器 `localStorage` 存储以下数据：
 
-| 键名 | 用途 |
-|------|------|
-| `cookie-consent-preferences` | Cookie 同意偏好设置 |
-| `theme` | 用户主题偏好（亮色/暗色/跟随系统） |
-| 论坛相关键名 | 论坛登录凭证及环境配置 |
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>键名</TableHead>
+      <TableHead>用途</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell><code>cookie-consent-preferences</code></TableCell>
+      <TableCell>Cookie 同意偏好设置</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell><code>theme</code></TableCell>
+      <TableCell>用户主题偏好（亮色/暗色/跟随系统）</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>论坛相关键名</TableCell>
+      <TableCell>论坛登录凭证及环境配置</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
 
 ## 其他第三方服务
 
@@ -54,12 +120,37 @@ lang: ""
 
 以下资源仅在页面包含相关内容时按需加载：
 
-| 资源 | CDN | 用途 |
-|------|-----|------|
-| [Mermaid.js](https://mermaid.js.org) | jsdelivr | 渲染流程图、时序图等图表 |
-| [Highlight.js](https://highlightjs.org) | cdnjs | 代码块语法高亮 |
-| [dash.js](https://dashjs.org) | cdn.dashjs.org | DASH 视频播放 |
-| [Iconify](https://iconify.design) | api.iconify.design | 图标资源 |
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>资源</TableHead>
+      <TableHead>CDN</TableHead>
+      <TableHead>用途</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell><a href="https://mermaid.js.org">Mermaid.js</a></TableCell>
+      <TableCell>jsdelivr</TableCell>
+      <TableCell>渲染流程图、时序图等图表</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell><a href="https://highlightjs.org">Highlight.js</a></TableCell>
+      <TableCell>cdnjs</TableCell>
+      <TableCell>代码块语法高亮</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell><a href="https://dashjs.org">dash.js</a></TableCell>
+      <TableCell>cdn.dashjs.org</TableCell>
+      <TableCell>DASH 视频播放</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell><a href="https://iconify.design">Iconify</a></TableCell>
+      <TableCell>api.iconify.design</TableCell>
+      <TableCell>图标资源</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
 
 ### 第三方图片源
 
@@ -72,11 +163,32 @@ lang: ""
 
 以下服务由我们自行托管，数据不经过第三方：
 
-| 服务 | 地址 | 用途 |
-|------|------|------|
-| 博客主站 | `2x.nz` | 文章发布与展示 |
-| Umami 统计 | `u.2x.nz` | 匿名访问统计 |
-| 论坛后端 | `i.2x.nz` | 论坛数据存储与 API |
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>服务</TableHead>
+      <TableHead>地址</TableHead>
+      <TableHead>用途</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell>博客主站</TableCell>
+      <TableCell><code>2x.nz</code></TableCell>
+      <TableCell>文章发布与展示</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>Umami 统计</TableCell>
+      <TableCell><code>u.2x.nz</code></TableCell>
+      <TableCell>匿名访问统计</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>论坛后端</TableCell>
+      <TableCell><code>i.2x.nz</code></TableCell>
+      <TableCell>论坛数据存储与 API</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
 
 ## 数据控制
 
