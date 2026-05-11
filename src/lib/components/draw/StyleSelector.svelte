@@ -7,11 +7,13 @@
 	let {
 		value = $bindable(''),
 		onselect,
-		showTitle = true
+		showTitle = true,
+		constrainHeight = true
 	}: {
 		value?: string;
 		onselect?: (tags: string, name: string) => void;
 		showTitle?: boolean;
+		constrainHeight?: boolean;
 	} = $props();
 
 	let styles = $state<DrawStyle[]>([]);
@@ -77,7 +79,7 @@
 		{#if loading}
 			<div class="text-xs text-muted-foreground py-4 text-center">加载中...</div>
 		{:else}
-			<div class="max-h-64 overflow-y-auto pr-1">
+			<div class="{constrainHeight ? 'max-h-64' : ''} overflow-y-auto pr-1">
 				<div class="flex flex-wrap gap-1.5">
 					{#each sortedStyles() as s (s.tags)}
 						<button

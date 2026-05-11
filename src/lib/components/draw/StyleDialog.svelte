@@ -41,7 +41,7 @@
 			</Dialog.Title>
 		</Dialog.Header>
 		<div class="overflow-y-auto min-h-0">
-			<StyleSelector bind:value onselect={handleSelect} showTitle={false} />
+			<StyleSelector bind:value onselect={handleSelect} showTitle={false} constrainHeight={false} />
 		</div>
 	</Dialog.Content>
 </Dialog.Root>

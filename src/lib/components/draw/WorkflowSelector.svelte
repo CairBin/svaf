@@ -9,12 +9,14 @@
 		value = $bindable(''),
 		onselect,
 		onpromptload,
-		showTitle = true
+		showTitle = true,
+		constrainHeight = true
 	}: {
 		value?: string;
 		onselect?: (wf: DrawWorkflow) => void;
 		onpromptload?: (positive: string, negative: string) => void;
 		showTitle?: boolean;
+		constrainHeight?: boolean;
 	} = $props();
 
 	let workflows = $state<DrawWorkflow[]>([]);
@@ -138,7 +140,7 @@
 	{:else if error}
 		<div class="text-xs text-destructive py-4 text-center">{error}</div>
 	{:else}
-		<div class="max-h-64 overflow-y-auto space-y-2 pr-1">
+		<div class="{constrainHeight ? 'max-h-64' : ''} overflow-y-auto space-y-2 pr-1">
 			{#each grouped() as group}
 				<div>
 					<div class="text-xs text-muted-foreground font-medium mb-1 px-0.5">{group.category}</div>

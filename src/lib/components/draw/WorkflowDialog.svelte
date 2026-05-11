@@ -48,7 +48,7 @@
 			</Dialog.Title>
 		</Dialog.Header>
 		<div class="overflow-y-auto min-h-0">
-			<WorkflowSelector bind:value onselect={handleSelect} onpromptload={handlePromptLoad} showTitle={false} />
+			<WorkflowSelector bind:value onselect={handleSelect} onpromptload={handlePromptLoad} showTitle={false} constrainHeight={false} />
 		</div>
 	</Dialog.Content>
 </Dialog.Root>
