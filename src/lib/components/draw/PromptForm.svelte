@@ -23,7 +23,8 @@
 		height = $bindable(0),
 		safetyRating = $bindable('general'),
 		onsubmit,
-		disabled = false
+		disabled = false,
+		busy = false,
 	}: {
 		directPrompt?: string;
 		negativePrompt?: string;
@@ -34,6 +35,7 @@
 		safetyRating?: string;
 		onsubmit?: () => void;
 		disabled?: boolean;
+		busy?: boolean;
 	} = $props();
 
 	let resolutions = $state<DrawResolution[]>([]);
