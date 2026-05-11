@@ -280,3 +280,15 @@ export interface AdminGcResult {
 	ok: boolean;
 	cleaned: Record<string, number>;
 }
+
+export interface AdminLlmConfig {
+	provider: 'local' | 'google' | 'custom';
+	local_endpoint: string;
+	google_api_key: string;
+	google_model: string;
+	google_thinking: string;
+	custom_endpoint: string;
+	custom_api_key: string;
+	custom_model: string;
+	llm_stream: boolean;
+}

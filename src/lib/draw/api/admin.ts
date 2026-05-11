@@ -5,7 +5,8 @@ import type {
 	AdminLimits,
 	AdminMaintenance,
 	AdminAnnouncement,
-	AdminGcResult
+	AdminGcResult,
+	AdminLlmConfig
 } from '../types';
 
 // --- Featured ---
@@ -202,5 +203,23 @@ export async function uploadWfThumbnail(file: File) {
 	return drawRequest<{ ok: boolean; filename: string }>('/api/draw/admin/wf_thumbnail', {
 		method: 'POST',
 		body: form
+	});
+}
+
+// --- LLM Config ---
+
+export async function getLlmConfig() {
+	return drawRequest<{
+		config: AdminLlmConfig;
+		defaults: AdminLlmConfig;
+		providers: string[];
+		google_thinking_options: string[];
+	}>('/api/draw/admin/llm_config');
+}
+
+export async function updateLlmConfig(partial: Partial<AdminLlmConfig>) {
+	return drawRequest<{ ok: boolean; config: AdminLlmConfig }>('/api/draw/admin/llm_config', {
+		method: 'POST',
+		json: partial
 	});
 }

@@ -20,7 +20,8 @@
 		AdminReport,
 		AdminLimits,
 		AdminMaintenance,
-		AdminAnnouncement
+		AdminAnnouncement,
+		AdminLlmConfig
 	} from '$lib/draw/types';
 
 	let authToken = $state<string | null>(null);
@@ -57,6 +58,12 @@
 	// Limits
 	let limits = $state<AdminLimits | null>(null);
 	let defaults = $state<AdminLimits | null>(null);
+
+	// LLM Config
+	let llmConfig = $state<AdminLlmConfig | null>(null);
+	let llmDefaults = $state<AdminLlmConfig | null>(null);
+	let llmProviders = $state<string[]>([]);
+	let llmThinkingOptions = $state<string[]>([]);
 
 	// GC
 	let gcResult = $state<Record<string, number> | null>(null);
@@ -345,6 +352,32 @@
 			const res = await admin.updateLimits(limits);
 			limits = res.limits;
 			showMsg('success', '配置已保存');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '保存失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function loadLlmConfig() {
+		try {
+			const res = await admin.getLlmConfig();
+			llmConfig = res.config;
+			llmDefaults = res.defaults;
+			llmProviders = res.providers;
+			llmThinkingOptions = res.google_thinking_options;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		}
+	}
+
+	async function saveLlmConfig() {
+		if (!llmConfig) return;
+		loading = true;
+		try {
+			const res = await admin.updateLlmConfig(llmConfig);
+			llmConfig = res.config;
+			showMsg('success', 'LLM 配置已保存');
 		} catch (e) {
 			showMsg('error', e instanceof Error ? e.message : '保存失败');
 		} finally {
@@ -689,6 +722,9 @@
 				</TabsTrigger>
 				<TabsTrigger value="limits" class="text-xs">
 					<Icon icon="mdi:tune-vertical" class="size-3.5 mr-1" />配置
+				</TabsTrigger>
+				<TabsTrigger value="llm" class="text-xs">
+					<Icon icon="mdi:brain" class="size-3.5 mr-1" />LLM
 				</TabsTrigger>
 				<TabsTrigger value="gc" class="text-xs">
 					<Icon icon="mdi:broom" class="size-3.5 mr-1" />GC
@@ -1044,6 +1080,87 @@
 							{@render limitField('GPU 缓存 TTL（ms）', 'gpu_cache_ttl_ms', 'number')}
 							{@render limitField('GC 间隔（小时）', 'gc_interval_hours', 'number')}
 							<Button onclick={saveLimits} disabled={loading}>
+								<Icon icon="mdi:content-save" class="size-4 mr-1" />
+								保存配置
+							</Button>
+						{/if}
+					</CardContent>
+				</Card>
+			</TabsContent>
+
+			<!-- LLM Config -->
+			<TabsContent value="llm" class="mt-4">
+				<Card>
+					<CardHeader>
+						<CardTitle class="text-base flex items-center gap-2">
+							<Icon icon="mdi:brain" class="size-5" />
+							LLM 配置
+						</CardTitle>
+						<CardDescription>配置 AI 改写/翻译所用的大语言模型</CardDescription>
+					</CardHeader>
+					<CardContent class="space-y-4">
+						<Button variant="outline" size="sm" onclick={loadLlmConfig} disabled={loading}>
+							<Icon icon="mdi:refresh" class="size-4 mr-1" />加载
+						</Button>
+						{#if llmConfig}
+							<div class="space-y-1.5">
+								<Label class="text-xs">模型提供商</Label>
+								<div class="flex gap-2">
+									{#each llmProviders as p}
+										<button
+											class="px-3 py-1.5 text-xs rounded-md border transition-colors {llmConfig.provider === p ? 'border-primary bg-primary/10 text-primary font-medium' : 'border-border hover:bg-accent'}"
+											onclick={() => { if (llmConfig) llmConfig.provider = p as AdminLlmConfig['provider']; }}
+										>{p}</button>
+									{/each}
+								</div>
+							</div>
+
+							{#if llmConfig.provider === 'local'}
+								<div class="space-y-1.5">
+									<Label class="text-xs">本地端点</Label>
+									<Input class="text-xs" bind:value={llmConfig.local_endpoint} placeholder={llmDefaults?.local_endpoint || ''} />
+								</div>
+							{:else if llmConfig.provider === 'google'}
+								<div class="space-y-1.5">
+									<Label class="text-xs">API Key</Label>
+									<Input class="text-xs" type="password" bind:value={llmConfig.google_api_key} placeholder="留空不修改，输入新值覆盖" />
+								</div>
+								<div class="space-y-1.5">
+									<Label class="text-xs">模型名称</Label>
+									<Input class="text-xs" bind:value={llmConfig.google_model} placeholder={llmDefaults?.google_model || ''} />
+								</div>
+								<div class="space-y-1.5">
+									<Label class="text-xs">思维链</Label>
+									<div class="flex flex-wrap gap-1.5">
+										{#each llmThinkingOptions as opt}
+											<button
+												class="px-2 py-1 text-xs rounded border transition-colors {llmConfig.google_thinking === opt ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'}"
+												onclick={() => { if (llmConfig) llmConfig.google_thinking = opt; }}
+											>{opt}</button>
+										{/each}
+									</div>
+								</div>
+							{:else if llmConfig.provider === 'custom'}
+								<div class="space-y-1.5">
+									<Label class="text-xs">API 端点（OpenAI 兼容）</Label>
+									<Input class="text-xs" bind:value={llmConfig.custom_endpoint} placeholder={llmDefaults?.custom_endpoint || ''} />
+								</div>
+								<div class="space-y-1.5">
+									<Label class="text-xs">API Key</Label>
+									<Input class="text-xs" type="password" bind:value={llmConfig.custom_api_key} placeholder="留空不修改，输入新值覆盖" />
+								</div>
+								<div class="space-y-1.5">
+									<Label class="text-xs">模型名称</Label>
+									<Input class="text-xs" bind:value={llmConfig.custom_model} placeholder={llmDefaults?.custom_model || ''} />
+								</div>
+							{/if}
+
+							<div class="flex items-center gap-2">
+								<Switch bind:checked={llmConfig.llm_stream} />
+								<Label class="text-xs">流式输出（SSE）</Label>
+							</div>
+
+							<Button onclick={saveLlmConfig} disabled={loading}>
 								<Icon icon="mdi:content-save" class="size-4 mr-1" />
 								保存配置
 							</Button>
