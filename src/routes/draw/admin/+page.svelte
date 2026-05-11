@@ -94,13 +94,25 @@
 
 	// Lightbox
 	function openLb(path: string) {
-		const pswp = new PhotoSwipe({
-			dataSources: [{ src: getImageUrl(path), width: 1600, height: 1200, alt: path }],
-			index: 0,
-			bgOpacity: 0.9,
-			showHideAnimationType: 'fade'
-		});
-		pswp.init();
+		const url = getImageUrl(path);
+		const img = new Image();
+		img.onload = () => {
+			const pswp = new PhotoSwipe({
+				dataSources: [{ src: url, width: img.naturalWidth || 1600, height: img.naturalHeight || 1200, alt: path }],
+				index: 0,
+				bgOpacity: 0.9
+			});
+			pswp.init();
+		};
+		img.onerror = () => {
+			const pswp = new PhotoSwipe({
+				dataSources: [{ src: url, width: 1600, height: 1200, alt: path }],
+				index: 0,
+				bgOpacity: 0.9
+			});
+			pswp.init();
+		};
+		img.src = url;
 	}
 
 	$effect(() => {

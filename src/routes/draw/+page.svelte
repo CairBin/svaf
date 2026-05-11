@@ -202,6 +202,16 @@
 			children: 'a',
 			pswpModule: () => import('photoswipe')
 		});
+		myLightbox.addFilter('itemData', (itemData) => {
+			const a = itemData.element as HTMLAnchorElement;
+			const img = a?.querySelector('img') as HTMLImageElement | null;
+			return {
+				src: a.href,
+				width: img?.naturalWidth || 1600,
+				height: img?.naturalHeight || 1200,
+				alt: img?.alt || ''
+			};
+		});
 		myLightbox.init();
 	}
 </script>
