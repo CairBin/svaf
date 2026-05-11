@@ -42,6 +42,20 @@
 	}
 
 	$effect(() => {
+		if (messages.length === 0) {
+			lastProcessed = 0;
+			llmText = '';
+			llmVisible = false;
+			progressNode = '';
+			progressValue = 0;
+			progressMax = 0;
+			progressDone = 0;
+			progressTotal = 0;
+			progressText = '';
+			logLines = [];
+			previewSrc = '';
+			return;
+		}
 		if (messages.length <= lastProcessed) return;
 		for (let i = lastProcessed; i < messages.length; i++) {
 			const msg = messages[i];
