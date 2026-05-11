@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Icon from '@iconify/svelte';
+	import { siteConfig } from '$lib/config/site';
 	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
@@ -197,7 +198,7 @@
 </script>
 
 <svelte:head>
-	<title>AI 生图 - SVAF</title>
+	<title>AI 生图 - {siteConfig.title}</title>
 </svelte:head>
 
 <div class="w-full max-w-4xl mx-auto px-4 py-6 space-y-4">

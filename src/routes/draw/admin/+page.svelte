@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Icon from '@iconify/svelte';
+	import { siteConfig } from '$lib/config/site';
 	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
 	import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
@@ -640,7 +641,7 @@
 </script>
 
 <svelte:head>
-	<title>生图管理 - SVAF</title>
+	<title>生图管理 - {siteConfig.title}</title>
 </svelte:head>
 
 <div class="w-full max-w-5xl mx-auto px-4 py-6 space-y-4">
