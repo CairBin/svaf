@@ -311,11 +311,6 @@
 			{#if globalBusy}
 				<Badge variant="default" class="text-xs animate-pulse">生成中</Badge>
 			{/if}
-			{#if workflowName || styleName}
-				<span class="text-xs text-muted-foreground">
-					{#if workflowName}{workflowName}{/if}{#if workflowName && styleName} / {/if}{#if styleName}{styleName}{/if}
-				</span>
-			{/if}
 		</div>
 	</div>
 
