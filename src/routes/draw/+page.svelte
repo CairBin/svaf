@@ -26,7 +26,7 @@
 	// State
 	let currentBaseUrl = $state('');
 	let onlineCount = $state(0);
-	let globalBusy = $state(false);
+	let activeCount = $state(0);
 	let isGenerating = $state(false);
 	let authToken = $state<string | null>(null);
 	let isLoggedIn = $derived(!!authToken);
@@ -119,18 +119,12 @@
 
 	function handleStatusMessage(msg: WsStatusEvent) {
 		switch (msg.type) {
-			case 'status':
-				onlineCount = msg.online;
-				globalBusy = msg.busy;
-				break;
+				case 'status':
+					onlineCount = msg.online;
+					activeCount = msg.active;
+					break;
 			case 'online':
 				onlineCount = msg.count;
-				break;
-			case 'mirror':
-				if (!isGenerating && globalBusy) {
-					progressMessages = [...progressMessages, msg.event];
-					showProgress = true;
-				}
 				break;
 		}
 	}
@@ -168,7 +162,7 @@
 	}
 
 	function startGeneration() {
-		if (isGenerating || globalBusy) return;
+		if (isGenerating) return;
 		if (!authToken) {
 			alert('请先在论坛登录');
 			return;
@@ -291,9 +285,12 @@
 					{onlineCount}
 				</Badge>
 			{/if}
-			{#if globalBusy}
-				<Badge variant="default" class="text-xs animate-pulse">生成中</Badge>
-			{/if}
+				{#if activeCount > 0}
+					<Badge variant="secondary" class="text-xs">
+						<Icon icon="mdi:lightning-bolt" class="size-3 mr-0.5" />
+						当前{activeCount}个用户正在生图
+					</Badge>
+				{/if}
 			{#if workflowName || styleName}
 				<span class="text-xs text-muted-foreground">
 					{#if workflowName}{workflowName}{/if}{#if workflowName && styleName} / {/if}{#if styleName}{styleName}{/if}
@@ -352,7 +349,7 @@
 				bind:height
 				bind:safetyRating
 				onsubmit={startGeneration}
-				disabled={isGenerating || globalBusy || !isLoggedIn}
+				disabled={isGenerating || !isLoggedIn}
 			/>
 
 			<ProgressPanel

@@ -200,6 +200,7 @@ export interface WsStatusMessage {
 	type: 'status';
 	online: number;
 	busy: boolean;
+	active: number;
 	stage?: 'loading' | 'llm' | 'generating';
 	workflow?: string;
 }
@@ -209,10 +210,6 @@ export interface WsOnlineMessage {
 	count: number;
 }
 
-export interface WsMirrorMessage {
-	type: 'mirror';
-	event: WsRunMessage;
-}
 
 export type WsRunMessage =
 	| WsLogMessage
@@ -229,7 +226,6 @@ export type WsRunMessage =
 export type WsStatusEvent =
 	| WsStatusMessage
 	| WsOnlineMessage
-	| WsMirrorMessage;
 
 export interface WsRunPayload {
 	token: string;
