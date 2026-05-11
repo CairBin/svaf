@@ -1,0 +1,1268 @@
+<script lang="ts">
+	import Icon from '@iconify/svelte';
+	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
+	import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Switch } from '$lib/components/ui/switch';
+	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import * as Table from '$lib/components/ui/table';
+	import { forumAuth } from '$lib/forum/stores/auth';
+	import { drawEnv } from '$lib/draw/stores/env';
+	import * as admin from '$lib/draw/api/admin';
+	import { getImageProxyUrl, getImageUrl } from '$lib/draw/api/client';
+	import type {
+		AdminRecentImage,
+		AdminReport,
+		AdminLimits,
+		AdminMaintenance,
+		AdminAnnouncement
+	} from '$lib/draw/types';
+
+	let authToken = $state<string | null>(null);
+	let currentBaseUrl = $state('');
+	let activeTab = $state('maintenance');
+	let loading = $state(false);
+	let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+
+	// Maintenance
+	let maintenance = $state<AdminMaintenance>({ enabled: false, message: '' });
+
+	// Announcement
+	let announcement = $state<AdminAnnouncement>({ enabled: false, title: '', content: '' });
+
+	// Recent images
+	let recentImages = $state<AdminRecentImage[]>([]);
+	let recentTotal = $state(0);
+	let recentOffset = $state(0);
+	let recentLimit = $state(50);
+	let selectedPaths = $state<Set<string>>(new Set());
+	let searchUserId = $state('');
+
+	// Reports
+	let reports = $state<AdminReport[]>([]);
+
+	// Featured
+	let featuredPaths = $state<string[]>([]);
+	let newFeaturedPath = $state('');
+
+	// Banned
+	let bannedUsers = $state<number[]>([]);
+	let newBanUserId = $state('');
+
+	// Limits
+	let limits = $state<AdminLimits | null>(null);
+	let defaults = $state<AdminLimits | null>(null);
+
+	// GC
+	let gcResult = $state<Record<string, number> | null>(null);
+
+	// Styles
+	let styles = $state<import('$lib/draw/types').DrawStyle[]>([]);
+	let styleEditIndex = $state(-1);
+	let styleEditName = $state('');
+	let styleEditTags = $state('');
+	let styleEditImage = $state('');
+
+	// Workflows
+	let workflowFiles = $state<string[]>([]);
+	let workflowMeta = $state<{ workflow: string; thumbnail?: string; lora_link?: string; category?: string }[]>([]);
+	let wfRenameOld = $state('');
+	let wfRenameNew = $state('');
+	let wfMetaEditWf = $state('');
+	let wfMetaEditCat = $state('');
+	let wfMetaEditLora = $state('');
+
+	// Lightbox
+	let lbOpen = $state(false);
+	let lbPath = $state('');
+
+	$effect(() => {
+		authToken = forumAuth.getToken();
+		const u = drawEnv.baseUrl.subscribe((v) => (currentBaseUrl = v));
+		return u;
+	});
+
+	function showMsg(type: 'success' | 'error', text: string) {
+		message = { type, text };
+		setTimeout(() => (message = null), 3000);
+	}
+
+	async function loadMaintenance() {
+		try {
+			maintenance = await admin.getMaintenance();
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		}
+	}
+
+	async function saveMaintenance() {
+		loading = true;
+		try {
+			const res = await admin.updateMaintenance(maintenance);
+			maintenance = res.maintenance;
+			showMsg('success', '维护模式已更新');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '保存失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function loadAnnouncement() {
+		try {
+			const res = await admin.getAnnouncement();
+			announcement = res.announcement;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		}
+	}
+
+	async function saveAnnouncement() {
+		loading = true;
+		try {
+			const res = await admin.updateAnnouncement(announcement);
+			announcement = res.announcement;
+			showMsg('success', '公告已更新');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '保存失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function loadRecent() {
+		loading = true;
+		try {
+			const res = await admin.getRecentImages(recentLimit, 0);
+			recentImages = res.items;
+			recentTotal = res.total;
+			recentOffset = res.items.length;
+			selectedPaths = new Set();
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function loadMoreRecent() {
+		loading = true;
+		try {
+			const res = await admin.getRecentImages(recentLimit, recentOffset);
+			recentImages = [...recentImages, ...res.items];
+			recentOffset += res.items.length;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function searchByUser() {
+		if (!searchUserId.trim()) return;
+		loading = true;
+		try {
+			const res = await admin.getImagesByUser(Number(searchUserId));
+			recentImages = res.items;
+			recentTotal = res.total;
+			selectedPaths = new Set();
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '查询失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleDeleteSelected() {
+		const paths = [...selectedPaths];
+		if (!paths.length) return;
+		if (!confirm(`确认删除 ${paths.length} 张图片？`)) return;
+		loading = true;
+		try {
+			const res = await admin.deleteImages(paths);
+			showMsg('success', `已删除 ${res.deleted} 张，失败 ${res.failed} 张`);
+			await loadRecent();
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '删除失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleDeleteOne(path: string) {
+		if (!confirm(`确认删除 ${path}？`)) return;
+		loading = true;
+		try {
+			await admin.deleteImage(path);
+			showMsg('success', '已删除');
+			recentImages = recentImages.filter((i) => i.path !== path);
+			selectedPaths.delete(path);
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '删除失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	function toggleSelect(path: string) {
+		const next = new Set(selectedPaths);
+		if (next.has(path)) next.delete(path);
+		else next.add(path);
+		selectedPaths = next;
+	}
+
+	function toggleSelectAll() {
+		if (selectedPaths.size === recentImages.length) {
+			selectedPaths = new Set();
+		} else {
+			selectedPaths = new Set(recentImages.map((i) => i.path));
+		}
+	}
+
+	async function loadReports() {
+		loading = true;
+		try {
+			const res = await admin.getReports();
+			reports = res.reports;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleResolveReport(id: string, action: 'delete' | 'ban_creator' | 'ban_reporter' | 'dismiss') {
+		loading = true;
+		try {
+			await admin.resolveReport(id, action);
+			showMsg('success', `举报已处理：${action}`);
+			reports = reports.filter((r) => r.id !== id);
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '处理失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function loadFeatured() {
+		try {
+			const res = await admin.getFeatured();
+			featuredPaths = res.items;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		}
+	}
+
+	async function handleAddFeatured() {
+		if (!newFeaturedPath.trim()) return;
+		loading = true;
+		try {
+			const res = await admin.addFeatured(newFeaturedPath.trim());
+			featuredPaths = res.items;
+			newFeaturedPath = '';
+			showMsg('success', '已添加到精选');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '添加失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleRemoveFeatured(path: string) {
+		loading = true;
+		try {
+			const res = await admin.removeFeatured(path);
+			featuredPaths = res.items;
+			showMsg('success', '已移除');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '移除失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function loadBanned() {
+		try {
+			const res = await admin.getBannedUsers();
+			bannedUsers = res.banned;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		}
+	}
+
+	async function handleBan() {
+		if (!newBanUserId.trim()) return;
+		loading = true;
+		try {
+			const res = await admin.banUser(Number(newBanUserId));
+			bannedUsers = res.banned;
+			newBanUserId = '';
+			showMsg('success', '已封禁');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '封禁失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleUnban(userId: number) {
+		loading = true;
+		try {
+			const res = await admin.unbanUser(userId);
+			bannedUsers = res.banned;
+			showMsg('success', '已解封');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '解封失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function loadLimits() {
+		try {
+			const res = await admin.getLimits();
+			limits = res.limits;
+			defaults = res.defaults;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		}
+	}
+
+	async function saveLimits() {
+		if (!limits) return;
+		loading = true;
+		try {
+			const res = await admin.updateLimits(limits);
+			limits = res.limits;
+			showMsg('success', '配置已保存');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '保存失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleGc() {
+		loading = true;
+		try {
+			const res = await admin.runGc();
+			gcResult = res.cleaned;
+			showMsg('success', 'GC 完成');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : 'GC 失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	// --- Styles ---
+
+	async function loadStyles() {
+		try {
+			const res = await admin.getStyles();
+			styles = res.styles;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载画风失败');
+		}
+	}
+
+	function editStyle(i: number) {
+		styleEditIndex = i;
+		styleEditName = styles[i].name;
+		styleEditTags = styles[i].tags;
+		styleEditImage = styles[i].image || '';
+	}
+
+	function cancelStyleEdit() {
+		styleEditIndex = -1;
+	}
+
+	async function saveStyle() {
+		if (styleEditIndex < 0) return;
+		const updated = [...styles];
+		updated[styleEditIndex] = {
+			name: styleEditName,
+			tags: styleEditTags,
+			image: styleEditImage,
+			thumbnail_url: updated[styleEditIndex].thumbnail_url
+		};
+		loading = true;
+		try {
+			const res = await admin.updateStyles(updated);
+			styles = res.styles;
+			styleEditIndex = -1;
+			showMsg('success', '画风已保存');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '保存失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function addStyle() {
+		const updated = [...styles, { name: '', tags: 'new_style', image: '' }];
+		loading = true;
+		try {
+			const res = await admin.updateStyles(updated);
+			styles = res.styles;
+			editStyle(styles.length - 1);
+			showMsg('success', '已添加');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '添加失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function deleteStyle(i: number) {
+		if (!confirm('确认删除该画风？')) return;
+		const updated = styles.filter((_, idx) => idx !== i);
+		loading = true;
+		try {
+			const res = await admin.updateStyles(updated);
+			styles = res.styles;
+			if (styleEditIndex === i) styleEditIndex = -1;
+			showMsg('success', '已删除');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '删除失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleStyleThumbnail(e: Event) {
+		const file = (e.target as HTMLInputElement).files?.[0];
+		if (!file) return;
+		loading = true;
+		try {
+			const res = await admin.uploadStyleThumbnail(file);
+			styleEditImage = res.filename;
+			showMsg('success', '缩略图已上传');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '上传失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	// --- Workflows ---
+
+	async function loadWorkflowFiles() {
+		try {
+			const res = await admin.getWorkflowFiles();
+			workflowFiles = res.files;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载工作流文件失败');
+		}
+	}
+
+	async function loadWorkflowMeta() {
+		try {
+			const res = await admin.getWorkflowMeta();
+			workflowMeta = res.workflow_meta;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载工作流元数据失败');
+		}
+	}
+
+	function loadWorkflowsAll() {
+		loadWorkflowFiles();
+		loadWorkflowMeta();
+	}
+
+	async function handleWfRename() {
+		if (!wfRenameOld || !wfRenameNew) return;
+		loading = true;
+		try {
+			await admin.renameWorkflow(wfRenameOld, wfRenameNew);
+			showMsg('success', '重命名成功');
+			wfRenameOld = '';
+			wfRenameNew = '';
+			loadWorkflowsAll();
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '重命名失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	function editWfMeta(wf: string) {
+		wfMetaEditWf = wf;
+		const existing = workflowMeta.find((m) => m.workflow === wf);
+		wfMetaEditCat = existing?.category || '';
+		wfMetaEditLora = existing?.lora_link || '';
+	}
+
+	async function saveWfMeta() {
+		if (!wfMetaEditWf) return;
+		const updated = workflowMeta.filter((m) => m.workflow !== wfMetaEditWf);
+		const entry: { workflow: string; category?: string; lora_link?: string; thumbnail?: string } = { workflow: wfMetaEditWf };
+		if (wfMetaEditCat) entry.category = wfMetaEditCat;
+		if (wfMetaEditLora) entry.lora_link = wfMetaEditLora;
+		const existing = workflowMeta.find((m) => m.workflow === wfMetaEditWf);
+		if (existing?.thumbnail) entry.thumbnail = existing.thumbnail;
+		updated.push(entry);
+		loading = true;
+		try {
+			const res = await admin.updateWorkflowMeta(updated);
+			workflowMeta = res.workflow_meta;
+			wfMetaEditWf = '';
+			showMsg('success', '元数据已保存');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '保存失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleWfThumbnail(e: Event) {
+		const file = (e.target as HTMLInputElement).files?.[0];
+		if (!file) return;
+		loading = true;
+		try {
+			const res = await admin.uploadWfThumbnail(file);
+			showMsg('success', `缩略图已上传: ${res.filename}`);
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '上传失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	// Tab change triggers data loading
+	$effect(() => {
+		const tab = activeTab;
+		if (!authToken) return;
+		switch (tab) {
+			case 'maintenance':
+				loadMaintenance();
+				break;
+			case 'announcement':
+				loadAnnouncement();
+				break;
+			case 'images':
+				if (recentImages.length === 0) loadRecent();
+				break;
+			case 'reports':
+				loadReports();
+				break;
+			case 'featured':
+				loadFeatured();
+				break;
+			case 'banned':
+				loadBanned();
+				break;
+			case 'limits':
+				loadLimits();
+				break;
+			case 'styles':
+				loadStyles();
+				break;
+			case 'workflows':
+				loadWorkflowsAll();
+				break;
+		}
+	});
+
+	function formatTime(ts: number) {
+		return new Date(ts * 1000).toLocaleString('zh-CN');
+	}
+</script>
+
+<svelte:head>
+	<title>生图管理 - SVAF</title>
+</svelte:head>
+
+<div class="w-full max-w-5xl mx-auto px-4 py-6 space-y-4">
+	<div class="flex items-center gap-2">
+		<a href="/draw" class="text-muted-foreground hover:text-foreground">
+			<Icon icon="mdi:arrow-left" class="size-5" />
+		</a>
+		<Icon icon="mdi:shield-crown-outline" class="size-6 text-primary" />
+		<h1 class="text-xl font-bold">生图管理</h1>
+	</div>
+
+	{#if !authToken}
+		<Alert>
+			<Icon icon="mdi:account-alert-outline" class="size-4" />
+			<AlertDescription class="text-xs">
+				请先<a href="/forum/auth/login" class="underline font-medium">登录论坛</a>（需要管理员账号）。
+			</AlertDescription>
+		</Alert>
+	{:else}
+		{#if message}
+			<Alert variant={message.type === 'error' ? 'destructive' : 'default'}>
+				<AlertDescription class="text-xs">{message.text}</AlertDescription>
+			</Alert>
+		{/if}
+
+		<Tabs bind:value={activeTab} class="w-full">
+			<TabsList class="w-full flex flex-wrap h-auto gap-1">
+				<TabsTrigger value="maintenance" class="text-xs">
+					<Icon icon="mdi:tools" class="size-3.5 mr-1" />维护
+				</TabsTrigger>
+				<TabsTrigger value="announcement" class="text-xs">
+					<Icon icon="mdi:bullhorn-outline" class="size-3.5 mr-1" />公告
+				</TabsTrigger>
+				<TabsTrigger value="images" class="text-xs">
+					<Icon icon="mdi:image-multiple-outline" class="size-3.5 mr-1" />图片
+				</TabsTrigger>
+				<TabsTrigger value="reports" class="text-xs">
+					<Icon icon="mdi:flag-outline" class="size-3.5 mr-1" />举报
+				</TabsTrigger>
+				<TabsTrigger value="featured" class="text-xs">
+					<Icon icon="mdi:star-outline" class="size-3.5 mr-1" />精选
+				</TabsTrigger>
+				<TabsTrigger value="banned" class="text-xs">
+					<Icon icon="mdi:account-cancel-outline" class="size-3.5 mr-1" />封禁
+				</TabsTrigger>
+				<TabsTrigger value="limits" class="text-xs">
+					<Icon icon="mdi:tune-vertical" class="size-3.5 mr-1" />配置
+				</TabsTrigger>
+				<TabsTrigger value="gc" class="text-xs">
+					<Icon icon="mdi:broom" class="size-3.5 mr-1" />GC
+				</TabsTrigger>
+				<TabsTrigger value="styles" class="text-xs">
+					<Icon icon="mdi:palette-outline" class="size-3.5 mr-1" />画风
+				</TabsTrigger>
+				<TabsTrigger value="workflows" class="text-xs">
+					<Icon icon="mdi:cog-outline" class="size-3.5 mr-1" />工作流
+				</TabsTrigger>
+			</TabsList>
+
+			<!-- Maintenance -->
+			<TabsContent value="maintenance" class="mt-4">
+				<Card>
+					<CardHeader>
+						<CardTitle class="text-base flex items-center gap-2">
+							维护模式
+							{#if maintenance.enabled}
+								<Badge variant="destructive">已开启</Badge>
+							{:else}
+								<Badge variant="secondary">已关闭</Badge>
+							{/if}
+						</CardTitle>
+						<CardDescription>开启后所有非管理员 API 请求将返回 503</CardDescription>
+					</CardHeader>
+					<CardContent class="space-y-4">
+						<div class="flex items-center gap-3">
+							<Switch bind:checked={maintenance.enabled} />
+							<Label>{maintenance.enabled ? '开启' : '关闭'}</Label>
+						</div>
+						<div class="space-y-1.5">
+							<Label class="text-xs">维护提示信息</Label>
+							<textarea
+								bind:value={maintenance.message}
+								rows={4}
+								placeholder="站点维护中，请稍后再试..."
+								class="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+							></textarea>
+						</div>
+						<Button onclick={saveMaintenance} disabled={loading}>
+							<Icon icon="mdi:content-save" class="size-4 mr-1" />
+							保存
+						</Button>
+					</CardContent>
+				</Card>
+			</TabsContent>
+
+			<!-- Announcement -->
+			<TabsContent value="announcement" class="mt-4">
+				<Card>
+					<CardHeader>
+						<CardTitle class="text-base flex items-center gap-2">
+							公告管理
+							{#if announcement.enabled}
+								<Badge>已开启</Badge>
+							{:else}
+								<Badge variant="secondary">已关闭</Badge>
+							{/if}
+						</CardTitle>
+					</CardHeader>
+					<CardContent class="space-y-4">
+						<div class="flex items-center gap-3">
+							<Switch bind:checked={announcement.enabled} />
+							<Label>{announcement.enabled ? '开启' : '关闭'}</Label>
+						</div>
+						<div class="space-y-1.5">
+							<Label class="text-xs">标题</Label>
+							<Input bind:value={announcement.title} placeholder="公告标题" />
+						</div>
+						<div class="space-y-1.5">
+							<Label class="text-xs">内容</Label>
+							<textarea
+								bind:value={announcement.content}
+								rows={4}
+								placeholder="公告内容..."
+								class="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+							></textarea>
+						</div>
+						<Button onclick={saveAnnouncement} disabled={loading}>
+							<Icon icon="mdi:content-save" class="size-4 mr-1" />
+							保存
+						</Button>
+					</CardContent>
+				</Card>
+			</TabsContent>
+
+			<!-- Images -->
+			<TabsContent value="images" class="mt-4 space-y-4">
+				<Card>
+					<CardHeader>
+						<CardTitle class="text-base">图片管理</CardTitle>
+						<CardDescription>共 {recentTotal} 张图片</CardDescription>
+					</CardHeader>
+					<CardContent class="space-y-3">
+						<div class="flex flex-wrap gap-2">
+							<Button variant="outline" size="sm" onclick={loadRecent} disabled={loading}>
+								<Icon icon="mdi:refresh" class="size-4 mr-1" />刷新
+							</Button>
+							{#if selectedPaths.size > 0}
+								<Button variant="destructive" size="sm" onclick={handleDeleteSelected} disabled={loading}>
+									<Icon icon="mdi:delete" class="size-4 mr-1" />
+									删除选中 ({selectedPaths.size})
+								</Button>
+							{/if}
+						</div>
+						<div class="flex gap-2">
+							<Input
+								bind:value={searchUserId}
+								placeholder="按用户 ID 查询"
+								class="max-w-48"
+								type="number"
+							/>
+							<Button variant="outline" size="sm" onclick={searchByUser} disabled={loading}>查询</Button>
+						</div>
+					</CardContent>
+				</Card>
+
+				{#if recentImages.length > 0}
+					<div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+						{#each recentImages as img}
+							<div class="relative group">
+								<button
+									class="aspect-square rounded-md overflow-hidden border w-full {selectedPaths.has(img.path) ? 'ring-2 ring-primary' : ''}"
+									onclick={() => toggleSelect(img.path)}
+								>
+									<img
+										src={getImageProxyUrl(img.path)}
+										alt={img.path}
+										class="w-full h-full object-cover"
+										loading="lazy"
+									/>
+								</button>
+								<div class="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+									<button
+										class="p-0.5 rounded bg-black/50 text-white hover:bg-black/70"
+										onclick={(e) => { e.stopPropagation(); lbPath = img.path; lbOpen = true; }}
+										title="查看"
+									>
+										<Icon icon="mdi:eye" class="size-3.5" />
+									</button>
+									<button
+										class="p-0.5 rounded bg-destructive/80 text-white hover:bg-destructive"
+										onclick={(e) => { e.stopPropagation(); handleDeleteOne(img.path); }}
+										title="删除"
+									>
+										<Icon icon="mdi:delete" class="size-3.5" />
+									</button>
+								</div>
+								<div class="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] px-1 py-0.5 truncate">
+									{img.user_id || '?'} | {formatTime(img.mtime)}
+								</div>
+							</div>
+						{/each}
+					</div>
+					{#if recentOffset < recentTotal}
+						<div class="text-center">
+							<Button variant="outline" size="sm" onclick={loadMoreRecent} disabled={loading}>
+								加载更多
+							</Button>
+						</div>
+					{/if}
+				{/if}
+			</TabsContent>
+
+			<!-- Reports -->
+			<TabsContent value="reports" class="mt-4">
+				<Card>
+					<CardHeader>
+						<CardTitle class="text-base flex items-center gap-2">
+							举报管理
+							{#if reports.length > 0}
+								<Badge variant="destructive">{reports.length}</Badge>
+							{/if}
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<Button variant="outline" size="sm" onclick={loadReports} disabled={loading} class="mb-3">
+							<Icon icon="mdi:refresh" class="size-4 mr-1" />刷新
+						</Button>
+						{#if reports.length === 0}
+							<div class="text-sm text-muted-foreground py-4 text-center">无待处理举报</div>
+						{:else}
+							<div class="space-y-3">
+								{#each reports as r}
+									<div class="border rounded-lg p-3 space-y-2">
+										<div class="flex items-start justify-between gap-2">
+											<div class="space-y-1 min-w-0">
+												<div class="flex items-center gap-2">
+													<Badge variant="outline" class="text-xs">ID: {r.id.slice(0, 8)}</Badge>
+													<span class="text-xs text-muted-foreground">{formatTime(r.timestamp)}</span>
+												</div>
+												<div class="text-xs">
+													<span class="text-muted-foreground">图片：</span>
+													<span class="font-mono">{r.image_path}</span>
+													{#if !r.image_exists}
+														<Badge variant="secondary" class="ml-1 text-[10px]">已删除</Badge>
+													{/if}
+												</div>
+												<div class="text-xs">
+													<span class="text-muted-foreground">举报者：</span>{r.reporter_id}
+													<span class="text-muted-foreground ml-2">创作者：</span>{r.creator_id || '未知'}
+												</div>
+												<div class="text-xs">
+													<span class="text-muted-foreground">原因：</span>{r.reason}
+												</div>
+											</div>
+											{#if r.image_exists}
+												<button
+													class="shrink-0 size-12 rounded overflow-hidden border"
+													onclick={() => { lbPath = r.image_path; lbOpen = true; }}
+												>
+													<img
+														src={getImageProxyUrl(r.image_path)}
+														alt=""
+														class="w-full h-full object-cover"
+													/>
+												</button>
+											{/if}
+										</div>
+										<div class="flex flex-wrap gap-1.5">
+											<Button size="sm" variant="destructive" onclick={() => handleResolveReport(r.id, 'delete')} disabled={loading}>
+												删除图片
+											</Button>
+											<Button size="sm" variant="outline" onclick={() => handleResolveReport(r.id, 'ban_creator')} disabled={loading}>
+												封禁创作者
+											</Button>
+											<Button size="sm" variant="outline" onclick={() => handleResolveReport(r.id, 'ban_reporter')} disabled={loading}>
+												封禁举报者
+											</Button>
+											<Button size="sm" variant="ghost" onclick={() => handleResolveReport(r.id, 'dismiss')} disabled={loading}>
+												忽略
+											</Button>
+										</div>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</CardContent>
+				</Card>
+			</TabsContent>
+
+			<!-- Featured -->
+			<TabsContent value="featured" class="mt-4">
+				<Card>
+					<CardHeader>
+						<CardTitle class="text-base">精选管理</CardTitle>
+					</CardHeader>
+					<CardContent class="space-y-3">
+						<div class="flex gap-2">
+							<Input
+								bind:value={newFeaturedPath}
+								placeholder="输入图片相对路径"
+								class="flex-1"
+							/>
+							<Button size="sm" onclick={handleAddFeatured} disabled={loading}>
+								<Icon icon="mdi:plus" class="size-4 mr-1" />添加
+							</Button>
+						</div>
+						<Button variant="outline" size="sm" onclick={loadFeatured} disabled={loading}>
+							<Icon icon="mdi:refresh" class="size-4 mr-1" />刷新
+						</Button>
+						{#if featuredPaths.length === 0}
+							<div class="text-sm text-muted-foreground py-4 text-center">无精选图片</div>
+						{:else}
+							<div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+								{#each featuredPaths as path}
+									<div class="relative group">
+										<button
+											class="aspect-square rounded-md overflow-hidden border w-full"
+											onclick={() => { lbPath = path; lbOpen = true; }}
+										>
+											<img
+												src={getImageProxyUrl(path)}
+												alt={path}
+												class="w-full h-full object-cover"
+												loading="lazy"
+											/>
+										</button>
+										<button
+											class="absolute top-1 right-1 p-0.5 rounded bg-destructive/80 text-white hover:bg-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+											onclick={() => handleRemoveFeatured(path)}
+											title="移除"
+										>
+											<Icon icon="mdi:close" class="size-3.5" />
+										</button>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</CardContent>
+				</Card>
+			</TabsContent>
+
+			<!-- Banned -->
+			<TabsContent value="banned" class="mt-4">
+				<Card>
+					<CardHeader>
+						<CardTitle class="text-base">封禁管理</CardTitle>
+					</CardHeader>
+					<CardContent class="space-y-3">
+						<div class="flex gap-2">
+							<Input
+								bind:value={newBanUserId}
+								placeholder="输入用户 ID"
+								type="number"
+								class="max-w-48"
+							/>
+							<Button size="sm" variant="destructive" onclick={handleBan} disabled={loading}>
+								<Icon icon="mdi:account-cancel" class="size-4 mr-1" />封禁
+							</Button>
+						</div>
+						<Button variant="outline" size="sm" onclick={loadBanned} disabled={loading}>
+							<Icon icon="mdi:refresh" class="size-4 mr-1" />刷新
+						</Button>
+						{#if bannedUsers.length === 0}
+							<div class="text-sm text-muted-foreground py-4 text-center">无封禁用户</div>
+						{:else}
+							<div class="space-y-1.5">
+								{#each bannedUsers as uid}
+									<div class="flex items-center justify-between border rounded-md px-3 py-2">
+										<span class="text-sm font-mono">{uid}</span>
+										<Button size="sm" variant="ghost" onclick={() => handleUnban(uid)} disabled={loading}>
+											<Icon icon="mdi:account-check" class="size-4 mr-1" />解封
+										</Button>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</CardContent>
+				</Card>
+			</TabsContent>
+
+			<!-- Limits -->
+			<TabsContent value="limits" class="mt-4">
+				<Card>
+					<CardHeader>
+						<CardTitle class="text-base">系统配置</CardTitle>
+						<CardDescription>修改速率限制和其他参数</CardDescription>
+					</CardHeader>
+					<CardContent class="space-y-4">
+						<Button variant="outline" size="sm" onclick={loadLimits} disabled={loading}>
+							<Icon icon="mdi:refresh" class="size-4 mr-1" />加载
+						</Button>
+						{#if limits}
+							{@render limitField('生成冷却（秒）', 'gen_cooldown_sec', 'number')}
+							{@render limitField('速率窗口（秒）', 'image_rate_window_sec', 'number')}
+							{@render limitField('速率上限', 'image_rate_max', 'number')}
+							{@render limitField('举报窗口（秒）', 'report_window_sec', 'number')}
+							{@render limitField('举报窗口上限', 'report_window_max', 'number')}
+							{@render limitField('待处理举报上限', 'report_pending_max', 'number')}
+							{@render limitField('GPU 轮询间隔（ms）', 'gpu_poll_interval_ms', 'number')}
+							{@render limitField('GPU 缓存 TTL（ms）', 'gpu_cache_ttl_ms', 'number')}
+							{@render limitField('GC 间隔（小时）', 'gc_interval_hours', 'number')}
+							{@render limitField('精选提示', 'featured_tip', 'text')}
+							<Button onclick={saveLimits} disabled={loading}>
+								<Icon icon="mdi:content-save" class="size-4 mr-1" />
+								保存配置
+							</Button>
+						{/if}
+					</CardContent>
+				</Card>
+			</TabsContent>
+
+			<!-- GC -->
+			<TabsContent value="gc" class="mt-4">
+				<Card>
+					<CardHeader>
+						<CardTitle class="text-base">垃圾回收</CardTitle>
+						<CardDescription>清理已解决的举报、过期的速率限制条目和孤立的创作者映射</CardDescription>
+					</CardHeader>
+					<CardContent class="space-y-3">
+						<Button onclick={handleGc} disabled={loading}>
+							<Icon icon="mdi:broom" class="size-4 mr-1" />
+							执行 GC
+						</Button>
+						{#if gcResult}
+							<div class="border rounded-md p-3 text-xs space-y-1">
+								{#each Object.entries(gcResult) as [key, val]}
+									<div class="flex justify-between">
+										<span class="text-muted-foreground">{key}</span>
+										<span class="font-mono">{val}</span>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</CardContent>
+				</Card>
+			</TabsContent>
+
+			<!-- Styles -->
+			<TabsContent value="styles" class="mt-4">
+				<Card>
+					<CardHeader>
+						<CardTitle class="text-base flex items-center gap-2">
+							画风管理
+							<Badge variant="secondary">{styles.length}</Badge>
+						</CardTitle>
+					</CardHeader>
+					<CardContent class="space-y-3">
+						<div class="flex flex-wrap gap-2">
+							<Button variant="outline" size="sm" onclick={loadStyles} disabled={loading}>
+								<Icon icon="mdi:refresh" class="size-4 mr-1" />刷新
+							</Button>
+							<Button size="sm" onclick={addStyle} disabled={loading}>
+								<Icon icon="mdi:plus" class="size-4 mr-1" />添加画风
+							</Button>
+						</div>
+
+						{#if styleEditIndex >= 0 && styles[styleEditIndex]}
+							<Card class="border-primary">
+								<CardHeader class="pb-2">
+									<CardTitle class="text-sm">编辑画风</CardTitle>
+								</CardHeader>
+								<CardContent class="space-y-2">
+									<div class="flex gap-2">
+										<div class="flex-1 space-y-1">
+											<Label class="text-xs">名称</Label>
+											<Input bind:value={styleEditName} placeholder="画风名称" />
+										</div>
+										<div class="flex-1 space-y-1">
+											<Label class="text-xs">Tags</Label>
+											<Input bind:value={styleEditTags} placeholder="标签（必填）" />
+										</div>
+									</div>
+									<div class="space-y-1">
+										<Label class="text-xs">缩略图文件名</Label>
+										<div class="flex gap-2">
+											<Input bind:value={styleEditImage} placeholder="缩略图文件名" class="flex-1" />
+											<label class="shrink-0">
+												<input type="file" accept="image/*" class="hidden" onchange={handleStyleThumbnail} />
+												<Button variant="outline" size="sm" as="span">
+													<Icon icon="mdi:upload" class="size-4 mr-1" />上传
+												</Button>
+											</label>
+										</div>
+									</div>
+									<div class="flex gap-2">
+										<Button size="sm" onclick={saveStyle} disabled={loading}>
+											<Icon icon="mdi:content-save" class="size-4 mr-1" />保存
+										</Button>
+										<Button size="sm" variant="ghost" onclick={cancelStyleEdit}>取消</Button>
+									</div>
+								</CardContent>
+							</Card>
+						{/if}
+
+						{#if styles.length === 0}
+							<div class="text-sm text-muted-foreground py-4 text-center">无画风</div>
+						{:else}
+							<div class="space-y-1">
+								{#each styles as s, i}
+									<div class="flex items-center gap-2 border rounded-md px-3 py-2 {styleEditIndex === i ? 'border-primary bg-primary/5' : ''}">
+										{#if s.thumbnail_url}
+											<img src="{currentBaseUrl}{s.thumbnail_url}" alt="" class="size-8 rounded object-cover shrink-0" />
+										{:else}
+											<div class="size-8 rounded bg-muted flex items-center justify-center shrink-0">
+												<Icon icon="mdi:palette-outline" class="size-4 text-muted-foreground" />
+											</div>
+										{/if}
+										<div class="flex-1 min-w-0">
+											<div class="text-sm font-medium truncate">{s.name || '(无名)'}</div>
+											<div class="text-xs text-muted-foreground font-mono truncate">{s.tags}</div>
+										</div>
+										<Button size="sm" variant="ghost" onclick={() => editStyle(i)}>
+											<Icon icon="mdi:pencil" class="size-4" />
+										</Button>
+										<Button size="sm" variant="ghost" onclick={() => deleteStyle(i)}>
+											<Icon icon="mdi:delete" class="size-4 text-destructive" />
+										</Button>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</CardContent>
+				</Card>
+			</TabsContent>
+
+			<!-- Workflows -->
+			<TabsContent value="workflows" class="mt-4 space-y-4">
+				<Card>
+					<CardHeader>
+						<CardTitle class="text-base">工作流文件</CardTitle>
+						<CardDescription>共 {workflowFiles.length} 个工作流</CardDescription>
+					</CardHeader>
+					<CardContent class="space-y-3">
+						<div class="flex flex-wrap gap-2">
+							<Button variant="outline" size="sm" onclick={loadWorkflowsAll} disabled={loading}>
+								<Icon icon="mdi:refresh" class="size-4 mr-1" />刷新
+							</Button>
+							<label>
+								<input type="file" accept="image/*" class="hidden" onchange={handleWfThumbnail} />
+								<Button variant="outline" size="sm" as="span">
+									<Icon icon="mdi:upload" class="size-4 mr-1" />上传缩略图
+								</Button>
+							</label>
+						</div>
+
+						<!-- Rename -->
+						<div class="border rounded-md p-3 space-y-2">
+							<Label class="text-xs font-medium">重命名工作流</Label>
+							<div class="flex gap-2">
+								<Input bind:value={wfRenameOld} placeholder="旧文件名（如 a.json）" class="flex-1" />
+								<Input bind:value={wfRenameNew} placeholder="新文件名（如 b.json）" class="flex-1" />
+								<Button size="sm" onclick={handleWfRename} disabled={loading || !wfRenameOld || !wfRenameNew}>
+									<Icon icon="mdi:rename" class="size-4 mr-1" />重命名
+								</Button>
+							</div>
+						</div>
+
+						{#if workflowFiles.length > 0}
+							<div class="max-h-64 overflow-y-auto space-y-0.5">
+								{#each workflowFiles as wf}
+									<div class="text-xs font-mono px-2 py-1 rounded hover:bg-muted flex items-center gap-2">
+										<span class="flex-1 truncate">{wf}</span>
+										<button
+											class="text-muted-foreground hover:text-foreground"
+											onclick={() => { wfRenameOld = wf; }}
+											title="填入旧文件名"
+										>
+											<Icon icon="mdi:arrow-left-bold" class="size-3.5" />
+										</button>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle class="text-base flex items-center gap-2">
+							工作流元数据
+							<Badge variant="secondary">{workflowMeta.length}</Badge>
+						</CardTitle>
+						<CardDescription>分类、缩略图、Lora 链接</CardDescription>
+					</CardHeader>
+					<CardContent class="space-y-3">
+						{#if wfMetaEditWf}
+							<Card class="border-primary">
+								<CardHeader class="pb-2">
+									<CardTitle class="text-sm">编辑: {wfMetaEditWf}</CardTitle>
+								</CardHeader>
+								<CardContent class="space-y-2">
+									<div class="flex gap-2">
+										<div class="flex-1 space-y-1">
+											<Label class="text-xs">分类</Label>
+											<Input bind:value={wfMetaEditCat} placeholder="分类名称" />
+										</div>
+										<div class="flex-1 space-y-1">
+											<Label class="text-xs">Lora 链接</Label>
+											<Input bind:value={wfMetaEditLora} placeholder="https://..." />
+										</div>
+									</div>
+									<div class="flex gap-2">
+										<Button size="sm" onclick={saveWfMeta} disabled={loading}>
+											<Icon icon="mdi:content-save" class="size-4 mr-1" />保存
+										</Button>
+										<Button size="sm" variant="ghost" onclick={() => (wfMetaEditWf = '')}>取消</Button>
+									</div>
+								</CardContent>
+							</Card>
+						{/if}
+
+						{#if workflowMeta.length === 0}
+							<div class="text-sm text-muted-foreground py-4 text-center">无元数据</div>
+						{:else}
+							<div class="max-h-64 overflow-y-auto space-y-1">
+								{#each workflowMeta as m}
+									<div class="flex items-center gap-2 border rounded-md px-3 py-2 {wfMetaEditWf === m.workflow ? 'border-primary bg-primary/5' : ''}">
+										<div class="flex-1 min-w-0">
+											<div class="text-sm font-mono truncate">{m.workflow}</div>
+											<div class="text-xs text-muted-foreground">
+												{#if m.category}<span class="mr-2">分类: {m.category}</span>{/if}
+												{#if m.lora_link}<span>Lora: {m.lora_link}</span>{/if}
+												{#if !m.category && !m.lora_link}<span class="italic">无元数据</span>{/if}
+											</div>
+										</div>
+										<Button size="sm" variant="ghost" onclick={() => editWfMeta(m.workflow)}>
+											<Icon icon="mdi:pencil" class="size-4" />
+										</Button>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</CardContent>
+				</Card>
+			</TabsContent>
+		</Tabs>
+	{/if}
+</div>
+
+<!-- Lightbox Dialog -->
+<Dialog.Root bind:open={lbOpen}>
+	<Dialog.Content class="max-w-3xl p-0 overflow-hidden">
+		{#if lbPath}
+			<img
+				src={getImageUrl(lbPath)}
+				alt={lbPath}
+				class="w-full max-h-[70vh] object-contain"
+			/>
+			<div class="px-4 py-2 border-t flex items-center justify-between">
+				<span class="text-xs font-mono truncate">{lbPath}</span>
+				<a
+					href={getImageUrl(lbPath, true)}
+					download
+					class="p-1.5 rounded hover:bg-muted"
+				>
+					<Icon icon="mdi:download" class="size-4" />
+				</a>
+			</div>
+		{/if}
+	</Dialog.Content>
+</Dialog.Root>
+
+{#snippet limitField(label: string, key: keyof AdminLimits, type: 'number' | 'text')}
+	{#if limits}
+		<div class="flex items-center gap-3">
+			<Label class="text-xs w-40 shrink-0">{label}</Label>
+			{#if type === 'number'}
+				<Input
+					type="number"
+					value={limits[key]}
+					oninput={(e) => {
+						if (limits) limits = { ...limits, [key]: Number(e.currentTarget.value) };
+					}}
+					class="max-w-32"
+				/>
+			{:else}
+				<Input
+					type="text"
+					value={String(limits[key])}
+					oninput={(e) => {
+						if (limits) limits = { ...limits, [key]: e.currentTarget.value };
+					}}
+					class="flex-1"
+				/>
+			{/if}
+			{#if defaults}
+				<span class="text-[10px] text-muted-foreground">默认: {defaults[key]}</span>
+			{/if}
+		</div>
+	{/if}
+{/snippet}
