@@ -13,6 +13,7 @@
 	import { consumeFork } from '$lib/draw/stores/fork';
 	import type { WsRunMessage, WsStatusEvent, WsRunPayload, DrawWorkflow, DrawRecommendation, AdminMaintenance } from '$lib/draw/types';
 	import { getMaintenance } from '$lib/draw/api/admin';
+	import { renderForumMarkdown } from '$lib/forum/utils/markdown';
 	import PageViews from '$lib/components/PageViews.svelte';
 
 	import EnvironmentSwitcher from '$lib/components/draw/EnvironmentSwitcher.svelte';
@@ -100,6 +101,7 @@
 	// Maintenance state
 	let maintenance = $state<AdminMaintenance | null>(null);
 	let showMaintenanceDialog = $state(false);
+	let maintenanceHtml = $derived(renderForumMarkdown(maintenance?.message));
 
 	// Tab state
 	let activeTab = $state('generate');
@@ -379,9 +381,9 @@
 					<Icon icon="mdi:tools" class="size-5 text-destructive" />
 					<h2 class="text-lg font-semibold">目前处于维护状态</h2>
 				</div>
-				<p class="text-sm text-muted-foreground">
-					{maintenance?.message || '站点维护中，部分功能可能不可用，请稍后再试。'}
-				</p>
+				<div class="text-sm text-muted-foreground prose-p:text-foreground prose-a:text-primary prose-a:underline prose-a:underline-offset-4">
+					{@html maintenanceHtml || '站点维护中，部分功能可能不可用，请稍后再试。'}
+				</div>
 			</div>
 		</div>
 	{/if}
