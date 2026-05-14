@@ -12,6 +12,20 @@
 
 	const STORAGE_KEY = 'draw-img2img';
 
+	let {
+		globalBusy = false,
+		otherNode = $bindable(''),
+		otherStage = $bindable(''),
+		otherValue = $bindable(0),
+		otherMax = $bindable(0),
+	}: {
+		globalBusy?: boolean;
+		otherNode?: string;
+		otherStage?: string;
+		otherValue?: number;
+		otherMax?: number;
+	} = $props();
+
 	let currentBaseUrl = $state('');
 	let authToken = $state<string | null>(null);
 	let isLoggedIn = $derived(!!authToken);
@@ -246,6 +260,20 @@
 		</Alert>
 	{/if}
 
+	{#if globalBusy && !isGenerating}
+		<Alert>
+			<Icon icon="mdi:loading" class="size-4 animate-spin" />
+			<AlertDescription class="text-xs">
+				他人生图中
+				{#if otherStage === 'llm'}
+					（LLM处理）
+				{:else if otherMax > 0}
+					（{Math.round(otherValue / otherMax * 100)}%）
+				{/if}
+			</AlertDescription>
+		</Alert>
+	{/if}
+
 	<!-- Image Upload -->
 	<div class="space-y-2">
 		<div class="flex items-center justify-between">
@@ -323,7 +351,7 @@
 	<Button
 		class="w-full gap-2"
 		onclick={startGeneration}
-		disabled={!isLoggedIn || isGenerating || uploading || images.length === 0}
+		disabled={!isLoggedIn || isGenerating || uploading || globalBusy || images.length === 0}
 	>
 		{#if uploading}
 			<Icon icon="mdi:loading" class="size-4 animate-spin" />
@@ -331,6 +359,9 @@
 		{:else if isGenerating}
 			<Icon icon="mdi:loading" class="size-4 animate-spin" />
 			生成中...
+		{:else if globalBusy}
+			<Icon icon="mdi:loading" class="size-4 animate-spin" />
+			他人生图中...
 		{:else}
 			<Icon icon="mdi:play" class="size-4" />
 			开始生成

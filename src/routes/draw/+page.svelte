@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import Icon from '@iconify/svelte';
 	import { siteConfig } from '$lib/config/site';
 	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
@@ -476,7 +476,7 @@
 				</TabsContent>
 
 				<TabsContent value="img2img" class="mt-4">
-					<Img2imgTab />
+					<Img2imgTab {globalBusy} bind:otherNode bind:otherValue bind:otherMax bind:otherStage />
 				</TabsContent>
 			</Tabs>
 		</TabsContent>
