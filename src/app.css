@@ -174,22 +174,7 @@ pre code.hljs {
 	background: transparent;
 }
 
-/* 代码块滚动条 */
-pre {
-	scrollbar-width: thin;
-}
-pre::-webkit-scrollbar,
-pre code::-webkit-scrollbar {
-	width: 6px;
-	height: 6px;
-}
-pre::-webkit-scrollbar-thumb,
-pre code::-webkit-scrollbar-thumb {
-	background: hsl(var(--border));
-	border-radius: 3px;
-}
-
-/* 全局暗色模式滚动条 */
+/* 暗色模式滚动条 */
 .dark ::-webkit-scrollbar,
 .dark textarea::-webkit-scrollbar {
 	width: 6px;
@@ -201,19 +186,15 @@ pre code::-webkit-scrollbar-thumb {
 }
 .dark ::-webkit-scrollbar-thumb,
 .dark textarea::-webkit-scrollbar-thumb {
-	background: hsl(var(--muted-foreground) / 0.35);
+	background: rgba(255, 255, 255, 0.2);
 	border-radius: 3px;
 }
 .dark ::-webkit-scrollbar-thumb:hover,
 .dark textarea::-webkit-scrollbar-thumb:hover {
-	background: hsl(var(--muted-foreground) / 0.5);
-}
-.dark textarea {
-	scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
-	scrollbar-width: thin;
+	background: rgba(255, 255, 255, 0.35);
 }
 .dark * {
-	scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+	scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 	scrollbar-width: thin;
 }
 
