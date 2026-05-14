@@ -102,14 +102,15 @@ function createEnvStore(): DrawEnvStore {
 
 export const drawEnv: DrawEnvStore = createEnvStore();
 
-const _redirectStore = writable<string>('');
+let _redirectResolved = false;
 
 /**
  * 探测 API 端点是否有重定向（CDN / 负载均衡），
- * 如有则后续请求全部使用重定向后的地址。
- * 应在页面加载时调用一次。
+ * 仅首次调用时真正发起请求，后续直接返回缓存结果。
  */
-export async function resolveApiRedirect(): Promise<string> {
+export async function resolveApiRedirect(): Promise<void> {
+	if (_redirectResolved) return;
+	_redirectResolved = true;
 	const baseUrl = get(drawEnv.baseUrl);
 	try {
 		const resp = await fetch(baseUrl, { method: 'HEAD', redirect: 'manual' });
@@ -118,18 +119,11 @@ export async function resolveApiRedirect(): Promise<string> {
 			if (location) {
 				const resolved = new URL(location, baseUrl).toString().replace(/\/+$/, '');
 				if (resolved !== baseUrl) {
-					_redirectStore.set(resolved);
 					drawEnv.customBaseUrl.set(resolved);
-					return resolved;
 				}
 			}
 		}
 	} catch {
 		// 忽略错误，继续使用原地址
 	}
-	return baseUrl;
 }
-
-export const drawRedirectUrl = {
-	subscribe: _redirectStore.subscribe,
-};

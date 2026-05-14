@@ -7,7 +7,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { forumAuth } from '$lib/forum/stores/auth';
-	import { drawEnv, resolveApiRedirect } from '$lib/draw/stores/env';
+	import { drawEnv } from '$lib/draw/stores/env';
 	import { connectRunWs, connectStatusWs } from '$lib/draw/api/ws';
 	import { fetchMyImages, getImageUrl, getImageProxyUrl, forkOutputImage, recommendImage, deleteMyImage, fetchMyRecommendations } from '$lib/draw/api/client';
 	import { consumeFork } from '$lib/draw/stores/fork';
@@ -128,10 +128,6 @@
 			if (!myImagesLoaded) loadMyImages();
 			if (!myRecsLoaded) loadMyRecommendations();
 		}
-	});
-
-	$effect(() => {
-		resolveApiRedirect();
 	});
 
 	$effect(() => {

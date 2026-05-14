@@ -1,5 +1,5 @@
 import { forumAuth } from '$lib/forum/stores/auth';
-import { drawEnv } from '../stores/env';
+import { drawEnv, resolveApiRedirect } from '../stores/env';
 import { DrawApiError } from '../types';
 import type { DrawApiErrorPayload, DrawRecommendation } from '../types';
 import { get } from 'svelte/store';
@@ -44,6 +44,7 @@ export async function drawRequest<T>(
 	path: string,
 	options: DrawRequestOptions = {}
 ): Promise<T> {
+	await resolveApiRedirect();
 	const headers = new Headers(options.headers);
 	const method = (options.method || 'GET').toUpperCase();
 	const token = forumAuth.getToken();
