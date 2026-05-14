@@ -94,7 +94,7 @@
 			bind:value={nlPrompt}
 			rows={3}
 			placeholder="一个蓝发少女站在花园里..."
-			class="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+			class="w-full rounded-md border bg-background px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
 		></textarea>
 	</div>
 
@@ -123,7 +123,7 @@
 						bind:value={directPrompt}
 						rows={3}
 						placeholder="1girl, blue_hair, garden, masterpiece, best quality..."
-						class="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+						class="w-full rounded-md border bg-background px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
 					></textarea>
 				</div>
 				<div class="space-y-1.5">
@@ -135,7 +135,7 @@
 						bind:value={negativePrompt}
 						rows={3}
 						placeholder="bad hands, too many fingers, long neck, poorly drawn..."
-						class="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+						class="w-full rounded-md border bg-background px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
 					></textarea>
 				</div>
 			</div>
