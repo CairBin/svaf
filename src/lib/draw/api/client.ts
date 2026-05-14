@@ -98,11 +98,11 @@ export async function drawRequest<T>(
 
 // --- Convenience functions ---
 
-export async function fetchWorkflows() {
+export async function fetchWorkflows(subdir?: string) {
 	return drawRequest<{
 		workflows: import('../types').DrawWorkflow[];
 		category_order: string[];
-	}>('/api/workflows');
+	}>('/api/workflows', { query: { subdir } });
 }
 
 export async function fetchWorkflowDetail(path: string, signal?: AbortSignal) {

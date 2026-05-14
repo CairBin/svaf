@@ -10,13 +10,15 @@
 		onselect,
 		onpromptload,
 		showTitle = true,
-		constrainHeight = true
+		constrainHeight = true,
+		subdir = 'WAI'
 	}: {
 		value?: string;
 		onselect?: (wf: DrawWorkflow) => void;
 		onpromptload?: (positive: string, negative: string) => void;
 		showTitle?: boolean;
 		constrainHeight?: boolean;
+		subdir?: string;
 	} = $props();
 
 	let workflows = $state<DrawWorkflow[]>([]);
@@ -67,7 +69,7 @@
 		loading = true;
 		error = '';
 		try {
-			const res = await fetchWorkflows();
+			const res = await fetchWorkflows(subdir);
 			workflows = res.workflows;
 			categoryOrder = res.category_order;
 		} catch (e) {

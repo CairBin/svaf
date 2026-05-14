@@ -8,11 +8,13 @@
 	let {
 		value = $bindable(''),
 		onselect,
-		onpromptload
+		onpromptload,
+		subdir = 'WAI'
 	}: {
 		value?: string;
 		onselect?: (wf: DrawWorkflow) => void;
 		onpromptload?: (positive: string, negative: string) => void;
+		subdir?: string;
 	} = $props();
 
 	let open = $state(false);
@@ -48,7 +50,7 @@
 			</Dialog.Title>
 		</Dialog.Header>
 		<div class="overflow-y-auto min-h-0">
-			<WorkflowSelector bind:value onselect={handleSelect} onpromptload={handlePromptLoad} showTitle={false} constrainHeight={false} />
+			<WorkflowSelector {subdir} bind:value onselect={handleSelect} onpromptload={handlePromptLoad} showTitle={false} constrainHeight={false} />
 		</div>
 	</Dialog.Content>
 </Dialog.Root>
