@@ -115,10 +115,10 @@ let loadingMore = $state(false);
 
 	// Lightbox
 	let lbOpen = $state(false);
-	let lbImages = $state<{ src: string; creator_id?: string }[]>([]);
+	let lbImages = $state<{ src: string; creator_id?: string; cached?: string }[]>([]);
 
 	function openLb(path: string) {
-		lbImages = [{ src: getImageUrl(path), creator_id: '' }];
+		lbImages = [{ src: getImageUrl(path), creator_id: '', cached: getImageProxyUrl(path) }];
 		lbOpen = true;
 	}
 

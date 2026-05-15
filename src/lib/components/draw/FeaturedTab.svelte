@@ -27,7 +27,7 @@ import type { DrawOutputItem } from '$lib/draw/types';
 	// Lightbox state
 	let lbOpen = $state(false);
 	let lbIndex = $state(0);
-	let lbImages = $derived(items.map((it) => ({ src: getImageUrl(it.path), creator_id: it.creator_id || '' })));
+	let lbImages = $derived(items.map((it) => ({ src: getImageUrl(it.path), creator_id: it.creator_id || '', cached: getImageProxyUrl(it.path) })));
 
 	function openLightbox(i: number) {
 		lbIndex = i;

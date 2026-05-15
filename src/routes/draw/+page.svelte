@@ -104,7 +104,7 @@
 	// My images lightbox
 	let myLbOpen = $state(false);
 	let myLbIndex = $state(0);
-	let myLbImages = $derived(myImages.map((it) => ({ src: getImageUrl(it.path), creator_id: '' })));
+	let myLbImages = $derived(myImages.map((it) => ({ src: getImageUrl(it.path), cached: getImageProxyUrl(it.path), creator_id: '' })));
 
 	// Recommendations
 	let myRecommendations = $state<DrawRecommendation[]>([]);

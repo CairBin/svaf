@@ -11,7 +11,7 @@
 		onrecommend
 	}: {
 		open?: boolean;
-		images?: { src: string; creator_id?: string }[];
+		images?: { src: string; creator_id?: string; cached?: string }[];
 		index?: number;
 		onclose?: () => void;
 		onfork?: (path: string) => void;
@@ -94,7 +94,7 @@
 		<!-- Image -->
 		<div class="relative flex items-center justify-center w-full h-full px-16 py-12">
 			<img
-				src={images[index].src}
+				src={images[index].cached || images[index].src}
 				alt=""
 				class="max-w-full max-h-full object-contain"
 				oncontextmenu={(e) => e.stopPropagation()}

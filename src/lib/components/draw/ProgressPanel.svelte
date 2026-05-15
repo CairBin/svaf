@@ -44,7 +44,7 @@
 	let lastProcessed = $state(0);
 	let lbOpen = $state(false);
 	let lbIndex = $state(0);
-	let lbImages = $derived(resultImages.map((img) => ({ src: getImageUrl(img.filename), creator_id: '' })));
+	let lbImages = $derived(resultImages.map((img) => ({ src: getImageUrl(img.filename), creator_id: '', cached: getImageProxyUrl(img.filename) })));
 
 	const progressPercent = $derived(progressMax > 0 ? Math.round((progressValue / progressMax) * 100) : 0);
 
