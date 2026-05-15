@@ -1483,7 +1483,7 @@ function formatTime(ts: number) {
 														<Badge variant={item.status === 'failed' ? 'destructive' : item.status === 'done' ? 'default' : item.status === 'running' ? 'default' : 'secondary'} class="text-[10px]">{item.status}</Badge>
 													</td>
 													<td class="py-1 pr-2 text-muted-foreground">{item.created_ago}s前</td>
-													<td class="py-1 pr-2 text-muted-foreground">{item.started_ago != null ? `{item.started_ago}s前` : '-'}</td>
+													<td class="py-1 pr-2 text-muted-foreground">{item.started_ago != null ? `${item.started_ago}s前` : '-'}</td>
 													<td class="py-1 pr-2 text-red-500 max-w-[200px] truncate">{item.error || '-'}</td>
 												</tr>
 											{/each}
