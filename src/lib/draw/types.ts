@@ -220,7 +220,6 @@ export interface WsRunPayload {
 	image2_name?: string;
 	denoise?: number;
 	reverse_push?: boolean;
-	qwen?: boolean;
 }
 
 // --- Admin types ---
@@ -244,6 +243,7 @@ export interface AdminReport {
 
 export interface AdminLimits {
 	gen_cooldown_sec: number;
+	gen_cooldown_after_sec: number;
 	image_rate_window_sec: number;
 	image_rate_max: number;
 	report_window_sec: number;
