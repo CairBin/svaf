@@ -47,7 +47,7 @@ import ImageLightbox from '$lib/components/draw/ImageLightbox.svelte';
 let columnCount = $state(4);
 let imgColumns = $state<string[][]>([[], [], [], []]);
 let columnHeights: number[] = [0, 0, 0, 0];
-let sentinelEl: HTMLDivElement | undefined;
+let sentinelEl = $state<HTMLDivElement | undefined>(undefined);
 let io: IntersectionObserver | null = null;
 let hasMore = $state(true);
 let loadingMore = $state(false);
