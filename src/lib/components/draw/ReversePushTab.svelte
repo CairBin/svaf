@@ -36,6 +36,8 @@
 	let denoise = $state(0.7);
 	let uploading = $state(false);
 	let error = $state('');
+	let uploadedImageName = $state('');
+	let lastUploadedDataUrl = $state('');
 
 	// WebSocket progress state
 	let progressMessages = $state<WsRunMessage[]>([]);
@@ -108,6 +110,8 @@
 	function removeImage() {
 		if (images[0]) URL.revokeObjectURL(images[0].dataUrl);
 		images = [];
+		uploadedImageName = '';
+		lastUploadedDataUrl = '';
 		saveState();
 	}
 
@@ -151,53 +155,60 @@
 		}
 
 		error = '';
-		uploading = true;
 
-		try {
-			// 1. Upload image to ComfyUI
-			const form = new FormData();
-			form.append('image1', images[0].file);
+		// Upload image if not already uploaded (缓存已上传的文件名，重试时跳过上传)
+		const currentDataUrl = images[0].dataUrl;
+		if (!uploadedImageName || lastUploadedDataUrl !== currentDataUrl) {
+			uploading = true;
+			try {
+				const form = new FormData();
+				form.append('image1', images[0].file);
 
-			const baseUrl = get(drawEnv.baseUrl);
-			const uploadResp = await fetch(`${baseUrl}/api/img2img/upload`, {
-				method: 'POST',
-				headers: { 'Authorization': `Bearer ${token}` },
-				body: form,
-			});
+				const baseUrl = get(drawEnv.baseUrl);
+				const uploadResp = await fetch(`${baseUrl}/api/img2img/upload`, {
+					method: 'POST',
+					headers: { 'Authorization': `Bearer ${token}` },
+					body: form,
+				});
 
-			if (!uploadResp.ok) {
-				const body = await uploadResp.json().catch(() => ({ message: uploadResp.statusText }));
-				throw new Error(body.message || body.detail || '上传失败');
+				if (!uploadResp.ok) {
+					const body = await uploadResp.json().catch(() => ({ message: uploadResp.statusText }));
+					throw new Error(body.message || body.detail || '上传失败');
+				}
+
+				const uploadData = await uploadResp.json();
+				uploadedImageName = uploadData.image1_name;
+				lastUploadedDataUrl = currentDataUrl;
+			} catch (e) {
+				uploading = false;
+				error = e instanceof Error ? e.message : '生成失败';
+				return;
 			}
-
-			const uploadData = await uploadResp.json();
 			uploading = false;
-
-			// 2. Connect WebSocket for generation
-			isGenerating = true;
-			progressMessages = [];
-			resultImages = [];
-			genCost = 0;
-			showProgress = true;
-
-			runWs = connectRunWs(
-				baseUrl,
-				{
-					token,
-					direct_prompt: prompt.trim(),
-					image1_name: uploadData.image1_name,
-					denoise,
-					reverse_push: true,
-				},
-				handleRunMessage,
-				undefined,
-				() => { isGenerating = false; },
-				() => { isGenerating = false; },
-			);
-		} catch (e) {
-			uploading = false;
-			error = e instanceof Error ? e.message : '生成失败';
 		}
+
+		// Connect WebSocket for generation
+		isGenerating = true;
+		progressMessages = [];
+		resultImages = [];
+		genCost = 0;
+		showProgress = true;
+
+		const baseUrl = get(drawEnv.baseUrl);
+		runWs = connectRunWs(
+			baseUrl,
+			{
+				token,
+				direct_prompt: prompt.trim(),
+				image1_name: uploadedImageName,
+				denoise,
+				reverse_push: true,
+			},
+			handleRunMessage,
+			undefined,
+			() => { isGenerating = false; },
+			() => { isGenerating = false; },
+		);
 	}
 </script>
 
