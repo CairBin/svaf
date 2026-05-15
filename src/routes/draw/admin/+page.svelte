@@ -841,6 +841,26 @@ onDestroy(() => {
 function formatTime(ts: number) {
 		return new Date(ts * 1000).toLocaleString('zh-CN');
 	}
+
+	let debugInterval: ReturnType<typeof setInterval> | null = null;
+
+	$effect(() => {
+		if (activeTab === 'debug') {
+			loadDebug();
+			debugInterval = setInterval(loadDebug, 1000);
+		} else {
+			if (debugInterval) {
+				clearInterval(debugInterval);
+				debugInterval = null;
+			}
+		}
+		return () => {
+			if (debugInterval) {
+				clearInterval(debugInterval);
+				debugInterval = null;
+			}
+		};
+	});
 </script>
 
 <svelte:head>
