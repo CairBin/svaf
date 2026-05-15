@@ -127,6 +127,7 @@
 		progressMessages = [...progressMessages, msg];
 
 		if (msg.type === 'image') {
+			if (msg.image_type !== 'output') return;
 			resultImages = [...resultImages, { url: msg.url, filename: msg.filename }];
 		}
 		if (msg.type === 'error') {
