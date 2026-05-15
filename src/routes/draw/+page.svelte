@@ -23,6 +23,7 @@
 	import FeaturedTab from '$lib/components/draw/FeaturedTab.svelte';
 	import Img2imgTab from '$lib/components/draw/Img2imgTab.svelte';
 import ReversePushTab from '$lib/components/draw/ReversePushTab.svelte';
+import QwenTab from '$lib/components/draw/QwenTab.svelte';
 		import ImageLightbox from '$lib/components/draw/ImageLightbox.svelte';
 
 	// State
@@ -125,6 +126,7 @@ import ReversePushTab from '$lib/components/draw/ReversePushTab.svelte';
 	// Tab state
 	let activeTab = $state('generate');
 	let genSubTab = $state('txt2img');
+	let img2imgSubTab = $state('flux2');
 
 	// Persist form state to localStorage
 	$effect(() => {
@@ -496,7 +498,18 @@ import ReversePushTab from '$lib/components/draw/ReversePushTab.svelte';
 				</TabsContent>
 
 				<TabsContent value="img2img" class="mt-4">
-					<Img2imgTab {globalBusy} bind:otherNode bind:otherValue bind:otherMax bind:otherStage />
+					<Tabs bind:value={img2imgSubTab} class="w-full">
+						<TabsList class="w-full">
+							<TabsTrigger value="flux2" class="flex-1">Flux2</TabsTrigger>
+							<TabsTrigger value="qwen" class="flex-1">Qwen</TabsTrigger>
+						</TabsList>
+						<TabsContent value="flux2" class="mt-4">
+							<Img2imgTab {globalBusy} bind:otherNode bind:otherValue bind:otherMax bind:otherStage />
+						</TabsContent>
+						<TabsContent value="qwen" class="mt-4">
+							<QwenTab {globalBusy} bind:otherNode bind:otherValue bind:otherMax bind:otherStage />
+						</TabsContent>
+					</Tabs>
 				</TabsContent>
 
 				<TabsContent value="reverse_push" class="mt-4">

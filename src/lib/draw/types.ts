@@ -220,6 +220,7 @@ export interface WsRunPayload {
 	image2_name?: string;
 	denoise?: number;
 	reverse_push?: boolean;
+	qwen?: boolean;
 }
 
 // --- Admin types ---
