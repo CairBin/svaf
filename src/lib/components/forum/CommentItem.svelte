@@ -5,9 +5,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import type { ForumComment } from '$lib/forum/types/comment';
 	import { formatForumDateTime } from '$lib/forum/utils/markdown';
-	import { deleteComment, likeComment } from '$lib/forum/api/comments';
+	import { deleteComment, likeComment, createComment } from '$lib/forum/api/comments';
 	import { forumAuth } from '$lib/forum/stores/auth';
 	import { emitErrorToast, emitSuccessToast } from '$lib/forum/utils/toast';
+	import ForumMarkdownEditor from './ForumMarkdownEditor.svelte';
 	import ForumMarkdownContent from './ForumMarkdownContent.svelte';
 	import Self from './CommentItem.svelte';
 
@@ -25,6 +26,29 @@
 	let likeBusy = $state(false);
 	let liked = $state(false);
 	let likeCount = $state(0);
+	let replying = $state(false);
+	let replyContent = $state('');
+	let replyBusy = $state(false);
+
+	async function handleReply() {
+		if (replyBusy || !replyContent.trim() || !$forumAuth.token) return;
+		replyBusy = true;
+		try {
+			await createComment({
+				postId: comment.postId,
+				content: replyContent.trim(),
+				parentId: comment.parentId || comment.id,
+			});
+			replyContent = '';
+			replying = false;
+			emitSuccessToast('回复评论', '回复成功。');
+			onDeleted?.();
+		} catch (e) {
+			emitErrorToast('回复评论', e instanceof Error ? e.message : '回复失败，请稍后再试。');
+		} finally {
+			replyBusy = false;
+		}
+	}
 
 	// 同步 prop -> 本地状态：comment 变化时重置
 	$effect(() => {
@@ -160,9 +184,27 @@
 			/>
 			{likeCount}
 		</button>
-	</div>
+			{#if $forumAuth.token}
+				<button type="button" class="flex items-center gap-1 rounded-md px-1.5 py-0.5 transition hover:bg-muted hover:text-foreground" onclick={() => (replying = !replying)}>
+					<Icon icon="mdi:reply-outline" class="size-4" />
+					回复
+				</button>
+			{/if}
+		</div>
 
-	{#if comment.replies && comment.replies.length > 0}
+		{#if replying}
+			<div class="mt-3 space-y-2">
+				<ForumMarkdownEditor bind:value={replyContent} placeholder="写下你的回复..." uploadType="comment" />
+				<div class="flex justify-end gap-2">
+					<Button variant="ghost" size="sm" onclick={() => { replying = false; replyContent = ''; }}>取消</Button>
+					<Button size="sm" onclick={handleReply} disabled={replyBusy || !replyContent.trim()}>
+						{#if replyBusy}<Icon icon="mdi:loading" class="size-4 animate-spin mr-1" />{/if}回复
+					</Button>
+				</div>
+			</div>
+		{/if}
+
+		{#if comment.replies && comment.replies.length > 0}
 		<div class="mt-4 space-y-3">
 			{#each comment.replies as reply (reply.id)}
 				<Self comment={reply} depth={depth + 1} {onDeleted} />
