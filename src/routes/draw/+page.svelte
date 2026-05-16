@@ -30,6 +30,7 @@
 	let onlineCount = $state(0);
 	let queuing = $state(false);
 	let queueSuccess = $state("");
+	let queueError = $state("");
 	let queueTimer: ReturnType<typeof setInterval> | null = null;
 	let globalBusy = $state(false);
 	
@@ -271,6 +272,7 @@
 
 			queuing = true;
 			queueSuccess = '';
+			queueError = '';
 			try {
 				await addToQueue({
 					direct_prompt: finalDirectPrompt,
@@ -284,9 +286,9 @@
 					workflow_path: workflowPath,
 					inline_workflow: inlineWorkflow || undefined,
 				});
-				queueSuccess = '已加入队列，生成完成后可前往"我的"页面查看';
+				queueSuccess = '成功加入队列！等待生图中，前往"我的"页面查看详情。';
 			} catch (e) {
-				alert(e instanceof Error ? e.message : '加入队列失败');
+				queueError = e instanceof Error ? e.message : '加入队列失败';
 			} finally {
 				queuing = false;
 			}
@@ -319,7 +321,7 @@
 	}
 
 	async function loadMyQueue() {
-		myQueueLoading = true;
+		if (myQueueItems.length === 0) myQueueLoading = true;
 		try {
 			const res = await fetchMyQueue();
 			const now = res.items;
@@ -593,6 +595,12 @@
 						<Alert>
 							<Icon icon="mdi:check-circle" class="size-4" />
 							<AlertDescription class="text-xs">{queueSuccess}</AlertDescription>
+						</Alert>
+					{/if}
+				{#if queueError}
+						<Alert variant="destructive">
+							<Icon icon="mdi:alert-circle" class="size-4" />
+							<AlertDescription class="text-xs">{queueError}</AlertDescription>
 						</Alert>
 					{/if}
 

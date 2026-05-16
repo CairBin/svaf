@@ -4,6 +4,7 @@ export interface DrawApiErrorPayload {
 	code?: string;
 	message?: string;
 	error?: string;
+	detail?: string;
 }
 
 export class DrawApiError extends Error {
@@ -11,7 +12,7 @@ export class DrawApiError extends Error {
 	code?: string;
 
 	constructor(status: number, payload: DrawApiErrorPayload = {}) {
-		super(payload.message || payload.error || `生图请求失败（${status}）`);
+		super(payload.detail || payload.message || payload.error || `生图请求失败（${status}）`);
 		this.name = 'DrawApiError';
 		this.status = status;
 		this.code = payload.code;

@@ -98,7 +98,10 @@ export const drawEnv: DrawEnvStore = createEnvStore();
  * 探测 API 端点是否有重定向（CDN / 负载均衡），
  * 每次调用都发起请求，不缓存。
  */
+let _redirectResolved = false;
+
 export async function resolveApiRedirect(): Promise<void> {
+	if (_redirectResolved) return;
 	apiStatus.set('checking');
 	const baseUrl = get(drawEnv.baseUrl);
 	try {
@@ -107,6 +110,7 @@ export async function resolveApiRedirect(): Promise<void> {
 		if (finalUrl !== baseUrl) {
 			drawEnv.customBaseUrl.set(finalUrl);
 		}
+		_redirectResolved = true;
 		apiStatus.set('online');
 	} catch (e) {
 		apiStatus.set('offline');
