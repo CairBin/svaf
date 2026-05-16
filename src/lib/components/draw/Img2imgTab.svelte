@@ -361,7 +361,7 @@ function handlePromptInput(e: Event) {
 			<AlertDescription class="text-xs">{error}</AlertDescription>
 		</Alert>
 	{/if}
-t	{#if queueSuccess}
+		{#if queueSuccess}
 			<Alert>
 				<Icon icon="mdi:check-circle" class="size-4" />
 				<AlertDescription class="text-xs">{queueSuccess}</AlertDescription>
