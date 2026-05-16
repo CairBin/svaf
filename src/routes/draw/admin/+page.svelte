@@ -1110,7 +1110,7 @@ function formatTime(ts: number) {
 							{/if}
 							{#if detailImg.prompt}
 								<div>
-									<span class="text-muted-foreground">{detailImg.image1 ? '标签' : '最终正向 Prompt'}：</span>
+									<span class="text-muted-foreground">正向 Prompt：</span>
 									<div class="mt-0.5 p-2 bg-muted rounded text-[11px] break-all">{detailImg.prompt}</div>
 								</div>
 							{/if}
