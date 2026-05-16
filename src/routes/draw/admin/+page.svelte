@@ -131,8 +131,6 @@ let loadingMore = $state(false);
 	let detailImg: any = null;
 
 	function openLb(path: string) {
-		lbImages = [{ src: getImageUrl(path), creator_id: '', cached: getImageProxyUrl(path) }];
-		lbOpen = true;
 		detailImg = recentImages.find(i => i.path === path) || null;
 	}
 
@@ -1024,7 +1022,7 @@ function formatTime(ts: number) {
 										<div class="relative group">
 											<button
 												class="w-full rounded-md overflow-hidden border {selectedPaths.has(img.path) ? 'ring-2 ring-primary' : ''}"
-												onclick={() => openLb(img.path)}
+												onclick={() => { detailImg = img; }}
 											>
 												<img
 													src={getImageProxyUrl(img.path)}
@@ -1054,8 +1052,9 @@ function formatTime(ts: number) {
 													<Icon icon="mdi:delete" class="size-3.5" />
 												</button>
 											</div>
-											<div class="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] px-1 py-0.5 truncate pointer-events-none">
-												UID:{img.user_id || '?'}
+											<div class="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[11px] px-1.5 py-0.5 pointer-events-none flex items-center justify-between">
+												<span>UID:{img.user_id || '?'}</span>
+												<span class="underline cursor-pointer pointer-events-auto" onclick={(e) => { e.stopPropagation(); openLb(img.path); }} onkeydown={() => {}} role="button" tabindex="-1">详情</span>
 											</div>
 										</div>
 									{/if}
