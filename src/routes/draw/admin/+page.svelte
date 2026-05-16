@@ -1099,7 +1099,7 @@ function formatTime(ts: number) {
 							{#if detailImg.image1}
 								<div>
 									<span class="text-muted-foreground">原始图片：</span>
-									<a href="/api/uploads/{detailImg.image1}" target="_blank" class="text-primary underline">查看</a>
+									<a href="{currentBaseUrl}/api/uploads/{detailImg.image1}" target="_blank" class="text-primary underline">查看</a>
 								</div>
 							{/if}
 							{#if detailImg.prompt}
