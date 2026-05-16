@@ -1565,6 +1565,7 @@ function formatTime(ts: number) {
 											<tr class="border-b text-left text-muted-foreground">
 												<th class="py-1 pr-2">ID</th>
 												<th class="py-1 pr-2">UID</th>
+												<th class="py-1 pr-2">类型</th>
 												<th class="py-1 pr-2">状态</th>
 												<th class="py-1 pr-2">创建</th>
 												<th class="py-1 pr-2">启动</th>
@@ -1577,6 +1578,7 @@ function formatTime(ts: number) {
 												<tr class="border-b">
 													<td class="py-1 pr-2 font-mono">{item.id}</td>
 													<td class="py-1 pr-2">{item.user_id}</td>
+													<td class="py-1 pr-2 text-xs">{item.type === 'img2img' ? '🖼️' : '📝'}</td>
 													<td class="py-1 pr-2">
 														<Badge variant={item.status === 'failed' ? 'destructive' : item.status === 'done' ? 'default' : item.status === 'running' ? 'default' : 'secondary'} class="text-[10px]">{item.status}</Badge>
 													</td>
