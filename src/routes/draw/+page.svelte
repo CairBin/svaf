@@ -153,7 +153,9 @@
 		}
 	});
 
-	// Persist form state to localStorage
+	const state = $derived({ workflowPath, workflowName, styleTags, styleName, directPrompt, negativePrompt, nlPrompt, width, height, forkSeed, sameSeed });
+
+		// Persist form state to localStorage
 	$effect(() => {
 		if (typeof localStorage === 'undefined') return;
 		localStorage.setItem('draw-form', JSON.stringify(state));
@@ -285,8 +287,8 @@
 			}
 
 			const finalDirectPrompt = directPrompt
-				? `${directPrompt}, ${ratingTag}`
-				: ratingTag;
+				? `${directPrompt}`
+				: directPrompt;
 
 			queuing = true;
 			queueSuccess = '';
