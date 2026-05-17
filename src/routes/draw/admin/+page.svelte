@@ -279,7 +279,7 @@ let loadingMore = $state(false);
 			for (let c = 0; c < imgColumns.length; c++) {
 				if (flat.length < recentImages.length) {
 					for (let j = c; j < recentImages.length; j += imgColumns.length) {
-						flat.push(recentImages[j].path);
+						flat.push(recentImages[j].path); break;
 					}
 					added = true;
 					break;
@@ -1357,6 +1357,7 @@ function formatTime(ts: number) {
 										清空队列
 									</Button>
 								</div>
+
 						{/if}
 					</CardContent>
 				</Card>
@@ -1636,6 +1637,15 @@ function formatTime(ts: number) {
 								</Button>
 							</div>
 
+							{#if debugData.meta_stats}
+								<div>
+									<h4 class="text-sm font-medium mb-2">元数据写入</h4>
+									<div class="flex flex-wrap gap-2">
+										<Badge variant="outline" class="text-xs">图片数: {debugData.meta_stats.output_total}</Badge>
+									</div>
+								</div>
+							{/if}
+
 							{#if debugData.queue_users.length > 0}
 								<div>
 									<h4 class="text-sm font-medium mb-2">队列中的用户</h4>
@@ -1679,6 +1689,7 @@ function formatTime(ts: number) {
 												<th class="py-1 pr-2">启动</th>
 													<th class="py-1 pr-2">工作流</th>
 													<th class="py-1 pr-2">错误</th>
+														<th class="py-1 pr-2">元数据</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -1694,6 +1705,7 @@ function formatTime(ts: number) {
 													<td class="py-1 pr-2 text-muted-foreground">{item.started_ago != null ? `${item.started_ago}s前` : '-'}</td>
 														<td class="py-1 pr-2 break-all max-w-[120px] text-muted-foreground text-[10px]">{item.workflow_path || '-'}</td>
 														<td class="py-1 pr-2 break-all max-w-xs text-destructive text-[10px]" title={item.error || ''}>{item.error || '-'}</td>
+														<td class="py-1 pr-2 break-all max-w-[120px] text-muted-foreground text-[10px]">{item.meta_write ? `正向:${item.meta_write.prompt} 反向:${item.meta_write.negative} 原图1:${item.meta_write.image1} 原图2:${item.meta_write.image2}` : '-'}</td>
 												</tr>
 											{/each}
 										</tbody>

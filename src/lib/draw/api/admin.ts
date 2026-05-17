@@ -71,7 +71,7 @@ export async function getImagesByUser(userId: number) {
 
 export async function deleteImage(path: string) {
 	return drawRequest<{ ok: boolean }>('/api/draw/admin/delete', {
-		method: 'POST',
+		method: 'DELETE',
 		json: { path }
 	});
 }
