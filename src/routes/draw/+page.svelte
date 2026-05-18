@@ -56,28 +56,27 @@
 
 	// Restore form state from localStorage
 	if (typeof localStorage !== 'undefined') {
+		// read fork pending
 		try {
-			const saved = localStorage.getItem('draw-form');
-			if (saved) {
-				const p = JSON.parse(saved);
-				if (p.workflowPath) workflowPath = p.workflowPath;
-					if (localStorage.getItem('wf_prompt')) workflowPrompt = localStorage.getItem('wf_prompt')!;
-					if (localStorage.getItem('wf_neg_prompt')) workflowNegativePrompt = localStorage.getItem('wf_neg_prompt')!;
-				if (p.workflowName) workflowName = p.workflowName;
-				if (p.styleTags) styleTags = p.styleTags;
-				if (p.styleName) styleName = p.styleName;
-				if (p.directPrompt) directPrompt = p.directPrompt;
-				if (p.negativePrompt) negativePrompt = p.negativePrompt;
-				if (p.nlPrompt) nlPrompt = p.nlPrompt;
-				if (p.width) width = p.width;
-				if (p.height) height = p.height;
-					if (p.forkSeed !== undefined) forkSeed = p.forkSeed;
-					if (p.sameSeed !== undefined) sameSeed = p.sameSeed;
+			const f = localStorage.getItem("draw-fork-pending");
+			if (f) {
+				const d = JSON.parse(f);
+				if (d.builtin_prompt) directPrompt = d.builtin_prompt;
+				if (d.builtin_negative_prompt) negativePrompt = d.builtin_negative_prompt;
+				if (d.default_width) width = d.default_width;
+				if (d.default_height) height = d.default_height;
+				if (d.seed) forkSeed = d.seed;
+				inlineWorkflowApi = d.workflow_api || null;
+				inlineWorkflow = null;
+				if (d.workflow_path) workflowPath = d.workflow_path;
+				if (d.workflow_name) workflowName = d.workflow_name;
+				if (d.style_tags) { styleTags = d.style_tags; styleName = d.style_tags; }
+				else { styleTags = ''; styleName = ''; }
+				localStorage.removeItem("draw-fork-pending");
 			}
 		} catch {}
-	}
 
-	// Progress state
+		// Progress state
 
 
 	// My images state
@@ -274,9 +273,10 @@
 				styleTags = '';
 				styleName = '';
 			}
-			apiError.set('Fork 成功');
-		} catch (e) {
-			apiError.set(e instanceof Error ? e.message : 'Fork 失败');
+			localStorage.setItem('draw-fork-pending', JSON.stringify({ workflow_api: res.workflow_api || null, builtin_prompt: res.builtin_prompt || '', builtin_negative_prompt: res.builtin_negative_prompt || '', default_width: res.default_width || null, default_height: res.default_height || null, seed: res.seed, style_tags: res.style_tags || '', workflow_path: res.workflow_path || '', workflow_name: res.workflow_name || '' }));
+				apiError.set('Fork 成功');
+		} catch (e: any) {
+			apiError.set(e?.message || 'Fork 失败');
 		}
 	}
 
