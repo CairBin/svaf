@@ -84,6 +84,7 @@ let loadingMore = $state(false);
 	let nomMasonryItems = $derived(pendingNominations.flatMap((n: Nomination) => n.image_paths.map((p: string) => ({ path: p, nomination: n }))));
 	let nomImgColumns = $state<string[][]>([]);
 	let nomImgHeights: number[] = [];
+	let nomRejectReasons = $state<Record<string, string>>({});
 
 	function fmtBanDate(ts: number): string {
 		const d = new Date((ts || 0) * 1000);
@@ -589,7 +590,9 @@ $effect(() => {
 	async function handleNominationResolve(id: string, action: 'approve' | 'reject') {
 		loading = true;
 		try {
-			await admin.resolveNomination(id, action);
+			const reason = nomRejectReasons[id] || '';
+			await admin.resolveNomination(id, action, reason);
+			delete nomRejectReasons[id];
 			pendingNominations = pendingNominations.filter(n => n.id !== id);
 			rebuildNomImgColumns();
 			showMsg('success', action === 'approve' ? '已批准，图片已加入精选' : '已拒绝');
