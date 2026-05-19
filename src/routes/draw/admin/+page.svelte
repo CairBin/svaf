@@ -64,6 +64,439 @@ let loadingMore = $state(false);
 
 	// Recommendations
 	let recommendations = $state<DrawRecommendation[]>([]);
+	let recPending = $derived(recommendations.filter((r) => r.status === 'pending'));
+	let recHistory = $derived(recommendations.filter((r) => r.status !== 'pending'));
+	let recRejectReasons = $state<Record<string, string>>({});
+
+	// Featured
+	let featuredPaths = $state<string[]>([]);
+	let newFeaturedPath = $state('');
+
+	// Banned
+	let bannedUsers = $state<admin.BanEntry[]>([]);
+	let newBanUserId = $state('');
+	let newBanDays = $state(7);
+	let newBanReason = $state('');
+
+	// Limits
+	let limits = $state<AdminLimits | null>(null);
+	let defaults = $state<AdminLimits | null>(null);
+
+	// LLM Config
+	let llmConfig = $state<AdminLlmConfig | null>(null);
+		let llmProviders = $state<string[]>([]);
+		let llmTestResult = $state<{ ok: boolean; provider: string; profile_index?: number; reply?: string; error?: string; raw?: string } | null>(null);
+	let llmTesting = $state(false);
+		let llmModels = $state<string[] | null>(null);
+		let llmModelsLoading = $state(false);
+		let llmActiveTab = $state(0);
+
+	const thinkingLabels: Record<string, string> = {
+		off: '关闭',
+		level_minimal: 'minimal',
+		level_low: 'low',
+		level_medium: 'medium',
+		level_high: 'high',
+	};
+
+	const thinkingGroups: Array<{ label: string; options: string[] }> = [
+		{ label: '关闭', options: ['off'] },
+		{ label: 'Level (Gemini 3 系列)', options: ['level_minimal', 'level_low', 'level_medium', 'level_high'] },
+	];
+
+	// GC
+	let gcResult = $state<Record<string, number> | null>(null);
+	let debugData = $state<any>(null);
+	let debugLoading = $state(false);
+	let debugError = $state('');
+
+	// Styles
+	let styles = $state<import('$lib/draw/types').DrawStyle[]>([]);
+	let styleEditIndex = $state(-1);
+	let styleEditName = $state('');
+	let styleEditTags = $state('');
+	let styleEditImage = $state('');
+	let styleRenaming = $state(-1);
+	let styleRenameName = $state('');
+	let styleRenameTags = $state('');
+
+	// Workflows
+	let workflowFiles = $state<string[]>([]);
+	let workflowMeta = $state<{ workflow: string; thumbnail?: string; lora_link?: string; category?: string }[]>([]);
+	let wfRenaming = $state('');
+	let wfRenameValue = $state('');
+	let wfMetaEditWf = $state('');
+	let wfMetaEditCat = $state('');
+	let wfMetaEditLora = $state('');
+	let wfMetaEditLoraLink = $state('');
+	let wfUploadTarget = $state('');
+
+	// Lightbox
+	let lbOpen = $state(false);
+	let lbImages = $state<{ src: string; creator_id?: string; cached?: string }[]>([]);
+
+	// Image detail popup
+	let detailImg = $state<AdminRecentImage | null>(null);
+	let detailImgSrc = $derived(detailImg ? getImageProxyUrl(detailImg.path) : '');
+
+	function openLb(path: string) {
+		lbImages = [{ src: getImageUrl(path), creator_id: '', cached: getImageProxyUrl(path) }];
+		lbOpen = true;
+	}
+
+	async function handleAdminFork(path: string) {
+		try {
+			const res = await forkOutputImage(path);
+			pendingFork.set({
+				workflow: res.workflow,
+				builtin_prompt: res.builtin_prompt,
+				builtin_negative_prompt: res.builtin_negative_prompt,
+				default_width: res.default_width,
+				default_height: res.default_height,
+				seed: res.seed,
+				style_tags: res.style_tags,
+				workflow_api: res.workflow_api || null,
+				workflow_path: res.workflow_path || '',
+				workflow_name: res.workflow_name || '',
+				matched_workflow: res.matched_workflow
+			});
+			showMsg('success', 'Fork 成功，请切换至生图页面');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : 'Fork 失败');
+		}
+	}
+
+	$effect(() => {
+		authToken = forumAuth.getToken();
+		const u = drawEnv.baseUrl.subscribe((v) => (currentBaseUrl = v));
+		return u;
+	});
+
+	function showMsg(type: 'success' | 'error', text: string) {
+		message = { type, text };
+		setTimeout(() => (message = null), 3000);
+	}
+
+	async function loadAnnouncement() {
+		try {
+			const res = await admin.getAnnouncement();
+			announcement = res.announcement;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		}
+	}
+
+	async function saveAnnouncement() {
+		loading = true;
+		try {
+			const res = await admin.updateAnnouncement(announcement);
+			announcement = res.announcement;
+			showMsg('success', '公告已更新');
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '保存失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function loadRecent() {
+		if (loadingMore) return;
+		loading = true;
+		try {
+			loadingMore = true;
+			const res = await admin.getRecentImages(recentLimit, 0);
+			const deduped = res.items.filter((v, i, a) => a.findIndex(t => t.path === v.path) === i);
+			recentImages = deduped;
+			recentTotal = res.total;
+			recentOffset = res.items.length;
+			loadingMore = false;
+			selectedPaths = new Set();
+			columnCount = getColumnCount();
+			imgColumns = Array.from({ length: columnCount }, () => []);
+			columnHeights = new Array(columnCount).fill(0);
+			for (const item of deduped) pushToShortest(item.path);
+			imgColumns = [...imgColumns];
+			hasMore = recentOffset < recentTotal;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function loadMoreRecent() {
+		if (loadingMore || !hasMore) return;
+		loadingMore = true;
+		try {
+			const res = await admin.getRecentImages(recentLimit, recentOffset);
+			const moreDeduped = res.items.filter((v, i, a) => a.findIndex(t => t.path === v.path) === i && !recentImages.some(ex => ex.path === v.path));
+			recentImages = [...recentImages, ...moreDeduped];
+			recentOffset += res.items.length;
+			for (const item of moreDeduped) pushToShortest(item.path);
+			imgColumns = [...imgColumns];
+			hasMore = recentOffset < recentTotal;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		} finally {
+			loadingMore = false;
+		}
+	}
+
+	async function searchByUser() {
+		if (!String(searchUserId).trim()) return;
+		loading = true;
+		try {
+			const res = await admin.getImagesByUser(Number(searchUserId));
+			const deduped = res.items.filter((v, i, a) => a.findIndex(t => t.path === v.path) === i);
+			recentImages = deduped;
+			recentTotal = res.total;
+			selectedPaths = new Set();
+			rebuildColumns();
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '查询失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	function getColumnCount(): number {
+		if (typeof window === 'undefined') return 4;
+		const w = window.innerWidth;
+		if (w >= 1400) return 6;
+		if (w >= 1024) return 5;
+		if (w >= 768) return 4;
+		if (w >= 480) return 3;
+		return 2;
+	}
+
+	function pushToShortest(path: string) {
+		let minIdx = 0;
+		for (let i = 1; i < columnHeights.length; i++) {
+			if (columnHeights[i] < columnHeights[minIdx]) minIdx = i;
+		}
+		imgColumns[minIdx] = [...imgColumns[minIdx], path];
+		columnHeights[minIdx] += 1;
+	}
+
+	function rebuildColumns() {
+		const flat: string[] = [];
+		while (true) {
+			let added = false;
+			for (let c = 0; c < imgColumns.length; c++) {
+				if (flat.length < recentImages.length) {
+					for (let j = c; j < recentImages.length; j += imgColumns.length) {
+						flat.push(recentImages[j].path); break;
+					}
+					added = true;
+					break;
+				}
+			}
+			if (!added) break;
+		}
+		columnCount = getColumnCount();
+		imgColumns = Array.from({ length: columnCount }, () => []);
+		columnHeights = new Array(columnCount).fill(0);
+		for (const p of flat) pushToShortest(p);
+		imgColumns = [...imgColumns];
+	}
+
+	function handleResize() {
+		const old = columnCount;
+		const nu = getColumnCount();
+		if (nu === old) return;
+		columnCount = nu;
+		rebuildColumns();
+	}
+
+	function handleImgLoad(e: Event) {
+		const img = e.currentTarget as HTMLImageElement;
+		if (img.naturalWidth && img.naturalHeight) {
+			img.style.aspectRatio = `${img.naturalWidth / img.naturalHeight}`;
+		}
+	}
+
+	async function handleDeleteSelected() {
+		const paths = [...selectedPaths];
+		if (!paths.length) return;
+		if (!confirm(`确认删除 ${paths.length} 张图片？`)) return;
+		loading = true;
+		try {
+			const res = await admin.deleteImages(paths);
+			showMsg('success', `已删除 ${res.deleted} 张，失败 ${res.failed} 张`);
+			await loadRecent();
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '删除失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleDeleteOne(path: string) {
+		if (!confirm(`确认删除 ${path}？`)) return;
+		loading = true;
+		try {
+			await admin.deleteImage(path);
+			showMsg('success', '已删除');
+			recentImages = recentImages.filter((i) => i.path !== path);
+			selectedPaths.delete(path);
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '删除失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleAddSelectedToFeatured() {
+		const paths = [...selectedPaths];
+		if (!paths.length) return;
+		loading = true;
+		try {
+			await Promise.all(paths.map((p) => admin.addFeatured(p)));
+			showMsg('success', `已将 ${paths.length} 张图片加入精选`);
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '操作失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	function toggleSelect(path: string) {
+		const next = new Set(selectedPaths);
+		if (next.has(path)) next.delete(path);
+		else next.add(path);
+		selectedPaths = next;
+	}
+
+	function toggleSelectAll() {
+		if (selectedPaths.size === recentImages.length) {
+			selectedPaths = new Set();
+		} else {
+			selectedPaths = new Set(recentImages.map((i) => i.path));
+		}
+	}
+
+	async function loadRecommendations() {
+		loading = true;
+		try {
+			const res = await admin.fetchRecommendations();
+			recommendations = res.items;
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function async function changeRec(recId: string, action: 'approve' | 'reject') {
+		loading = true;
+		try {
+			const reason = recRejectReasons[recId] || undefined;
+			await admin.resolveRecommendation(recId, action, action === 'reject' ? reason : undefined);
+			showMsg('success', '已修改为' + (action === 'approve' ? '通过' : '拒绝'));
+			loadRecommendations();
+			delete recRejectReasons[recId];
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '处理失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function clearRecHistory() {
+		if (!confirm('确定清除所有历史审核记录？')) return;
+		loading = true;
+		try {
+			const r = await admin.clearRecommendationHistory();
+			showMsg('success', '已清除 ' + r.deleted + ' 条记录');
+			loadRecommendations();
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '清除失败');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function resolveRec(recId: string, action: 'approve' | 'reject') {
+		loading = true;
+		try {
+			const reason = recRejectReasons[recId] || undefined;
+			await admin.resolveRecommendation(recId, action, action === 'reject' ? reason : undefined);
+			showMsg('success', action === 'approve' ? '已通过' : '已拒绝');
+			loadRecommendations();
+			delete recRejectReasons[recId];
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '处理失败');
+		} finally {
+			loading = false;
+		}
+	}<script lang="ts">
+	import Icon from '@iconify/svelte';
+	import { siteConfig } from '$lib/config/site';
+	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
+	import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Switch } from '$lib/components/ui/switch';
+	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+	import * as Table from '$lib/components/ui/table';
+	import { forumAuth } from '$lib/forum/stores/auth';
+	import { drawEnv } from '$lib/draw/stores/env';
+	import * as admin from '$lib/draw/api/admin';
+	import { getImageProxyUrl, getImageUrl, getThumbnailUrl, forkOutputImage, clearQueue, fetchDebugInfo } from '$lib/draw/api/client';
+	import { pendingFork } from '$lib/draw/stores/fork';
+import { onMount, onDestroy } from 'svelte';
+	import { goto } from '$app/navigation';
+import ImageLightbox from '$lib/components/draw/ImageLightbox.svelte';
+	import type {
+		AdminRecentImage,
+		AdminLimits,
+		AdminAnnouncement,
+		AdminLlmConfig,
+		DrawRecommendation
+	} from '$lib/draw/types';
+
+	let authToken = $state<string | null>(null);
+	let currentBaseUrl = $state('');
+	let activeTab = $state(location.hash?.slice(1) || 'announcement');
+
+	$effect(() => {
+		const h = location.hash?.slice(1);
+		if (h) activeTab = h;
+	});
+
+	$effect(() => {
+		if (activeTab) history.replaceState(null, '', '#' + activeTab);
+	});
+	let loading = $state(false);
+	let clearing = $state(false);
+	let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+
+
+	// Announcement
+	let announcement = $state<AdminAnnouncement>({ enabled: false, title: '', content: '' });
+
+	// Recent images
+	let recentImages = $state<AdminRecentImage[]>([]);
+	let recentTotal = $state(0);
+	let recentOffset = $state(0);
+	let recentLimit = $state(50);
+	let selectedPaths = $state<Set<string>>(new Set());
+	let searchUserId = $state('');
+// Masonry layout
+let columnCount = $state(4);
+let imgColumns = $state<string[][]>([[], [], [], []]);
+let columnHeights: number[] = [0, 0, 0, 0];
+let sentinelEl = $state<HTMLDivElement | undefined>(undefined);
+let io: IntersectionObserver | null = null;
+let hasMore = $state(true);
+let loadingMore = $state(false);
+
+	// Recommendations
+	let recommendations = $state<DrawRecommendation[]>([]);
+	let recPending = $derived(recommendations.filter((r) => r.status === 'pending'));
+	let recHistory = $derived(recommendations.filter((r) => r.status !== 'pending'));
 	let recRejectReasons = $state<Record<string, string>>({});
 
 	// Featured
@@ -1158,77 +1591,116 @@ function formatTime(ts: number) {
 			{/if}
 
 			<!-- Recommendations -->
-			<TabsContent value="recommendations" class="mt-4">
-				<Card>
-					<CardHeader>
-						<CardTitle class="text-base flex items-center gap-2">
-							自荐审核
-							{#if recommendations.length > 0}
-								<Badge variant="secondary">{recommendations.length}</Badge>
-							{/if}
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<Button variant="outline" size="sm" onclick={loadRecommendations} disabled={loading} class="mb-3">
-							<Icon icon="mdi:refresh" class="size-4 mr-1" />刷新
-						</Button>
-						{#if recommendations.length === 0}
-							<div class="text-sm text-muted-foreground py-4 text-center">无待审核自荐</div>
-						{:else}
-							<div class="space-y-3">
-								{#each recommendations as rec}
-									<div class="border rounded-lg p-3 space-y-2">
-										<div class="flex items-start justify-between gap-2">
-											<div class="space-y-1 min-w-0">
-												<div class="flex items-center gap-2">
-													<Badge variant="outline" class="text-xs">ID: {rec.id.slice(0, 8)}</Badge>
-													<span class="text-xs text-muted-foreground">{formatTime(rec.timestamp)}</span>
-												</div>
-												<div class="text-xs">
-													<span class="text-muted-foreground">图片：</span>
-													<span class="font-mono">{rec.image_path}</span>
-												</div>
-												<div class="text-xs">
-													<span class="text-muted-foreground">用户ID：</span>{rec.user_id}
-												</div>
-												{#if rec.user_reason}
-													<div class="text-xs">
-														<span class="text-muted-foreground">理由：</span>{rec.user_reason}
+						<TabsContent value="recommendations" class="mt-4">
+					<Card>
+						<CardHeader>
+							<CardTitle class="text-base flex items-center gap-2">
+								自荐审核
+								{#if recPending.length > 0}
+									<Badge variant="secondary">{recPending.length}</Badge>
+								{/if}
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<Button variant="outline" size="sm" onclick={loadRecommendations} disabled={loading} class="mb-3">
+								<Icon icon="mdi:refresh" class="size-4 mr-1" />刷新
+							</Button>
+							{#if recPending.length === 0}
+								<div class="text-sm text-muted-foreground py-4 text-center">无待审核自荐</div>
+							{:else}
+								<div class="space-y-3">
+									{#each recPending as rec}
+										<div class="border rounded-lg p-3 space-y-2">
+											<div class="flex items-start justify-between gap-2">
+												<div class="space-y-1 min-w-0">
+													<div class="flex items-center gap-2">
+														<Badge variant="outline" class="text-xs">ID: {rec.id.slice(0, 8)}</Badge>
+														<span class="text-xs text-muted-foreground">{formatTime(rec.timestamp)}</span>
 													</div>
-												{/if}
+													<div class="text-xs">
+														<span class="text-muted-foreground">图片：</span>
+														<span class="font-mono">{rec.image_path}</span>
+													</div>
+													<div class="text-xs">
+														<span class="text-muted-foreground">用户ID：</span>{rec.user_id}
+													</div>
+													{#if rec.user_reason}
+														<div class="text-xs">
+															<span class="text-muted-foreground">理由：</span>{rec.user_reason}
+														</div>
+													{/if}
+												</div>
+												<button
+													class="shrink-0 size-12 rounded overflow-hidden border"
+													onclick={() => openLb(rec.image_path)}
+												>
+													<img
+														src={getImageProxyUrl(rec.image_path)}
+														alt=""
+														class="w-full h-full object-cover"
+														loading="lazy"
+													/>
+												</button>
 											</div>
-											<button
-												class="shrink-0 size-12 rounded overflow-hidden border"
-												onclick={() => openLb(rec.image_path)}
-											>
-												<img
-													src={getImageProxyUrl(rec.image_path)}
-													alt=""
-													class="w-full h-full object-cover"
-													loading="lazy"
+											<div class="flex flex-wrap gap-1.5 items-center">
+												<Button size="sm" variant="default" onclick={() => resolveRec(rec.id, 'approve')} disabled={loading}>
+													通过
+												</Button>
+												<Input
+													bind:value={recRejectReasons[rec.id]}
+													placeholder="拒绝理由（可选）"
+													class="h-8 text-xs flex-1 min-w-[140px]"
 												/>
-											</button>
+												<Button size="sm" variant="destructive" onclick={() => resolveRec(rec.id, 'reject')} disabled={loading}>
+													拒绝
+												</Button>
+											</div>
 										</div>
-										<div class="flex flex-wrap gap-1.5 items-center">
-											<Button size="sm" variant="default" onclick={() => resolveRec(rec.id, 'approve')} disabled={loading}>
-												通过
-											</Button>
-											<Input
-												bind:value={recRejectReasons[rec.id]}
-												placeholder="拒绝理由（可选）"
-												class="h-8 text-xs flex-1 min-w-[140px]"
-											/>
-											<Button size="sm" variant="destructive" onclick={() => resolveRec(rec.id, 'reject')} disabled={loading}>
-												拒绝
-											</Button>
-										</div>
+									{/each}
+								</div>
+							{/if}
+
+							<!-- 历史审核 -->
+							{#if recHistory.length > 0}
+								<div class="mt-6 pt-4 border-t">
+									<div class="flex items-center justify-between mb-3">
+										<h4 class="text-sm font-medium">历史审核 ({recHistory.length})</h4>
+										<Button size="sm" variant="outline" onclick={clearRecHistory} disabled={loading}>
+											<Icon icon="mdi:delete-outline" class="size-4 mr-1" />清除全部
+										</Button>
 									</div>
-								{/each}
-							</div>
-						{/if}
-					</CardContent>
-				</Card>
-			</TabsContent>
+									<div class="space-y-2">
+										{#each recHistory as rec}
+											<div class="border rounded-lg p-3 space-y-2 {rec.status === 'approved' ? 'border-green-200 bg-green-50 dark:bg-green-950/20' : 'border-red-200 bg-red-50 dark:bg-red-950/20'}">
+												<div class="flex items-start justify-between gap-2">
+													<div class="space-y-1 min-w-0 text-xs">
+														<div class="flex items-center gap-2">
+															<Badge variant={rec.status === 'approved' ? 'default' : 'destructive'} class="text-xs">
+																{rec.status === 'approved' ? '已通过' : '已拒绝'}
+															</Badge>
+															<span>ID: {rec.id.slice(0, 8)}</span>
+															<span class="text-muted-foreground">{formatTime(rec.timestamp)}</span>
+														</div>
+														<div><span class="text-muted-foreground">图片：</span>{rec.image_path}</div>
+														<div><span class="text-muted-foreground">用户ID：</span>{rec.user_id}</div>
+														{#if rec.admin_reason}
+															<div><span class="text-muted-foreground">审核备注：</span>{rec.admin_reason}</div>
+														{/if}
+													</div>
+													<div class="flex gap-1 shrink-0">
+														<Button size="sm" variant="outline" onclick={() => changeRec(rec.id, rec.status === 'approved' ? 'reject' : 'approve')} disabled={loading}>
+															{rec.status === 'approved' ? '改为拒绝' : '改为通过'}
+														</Button>
+													</div>
+												</div>
+											</div>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</CardContent>
+					</Card>
+				</TabsContent>
 
 			<!-- Featured -->
 			<TabsContent value="featured" class="mt-4">

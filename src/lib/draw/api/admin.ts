@@ -239,6 +239,12 @@ export async function fetchRecommendations() {
 	return drawRequest<{ items: DrawRecommendation[]; total: number }>('/api/draw/admin/recommendations');
 }
 
+export async function clearRecommendationHistory() {
+	return drawRequest<{ ok: boolean; deleted: number }>('/api/draw/admin/recommendations/history', {
+		method: 'DELETE'
+	});
+}
+
 export async function resolveRecommendation(recId: string, action: 'approve' | 'reject', reason?: string) {
 	return drawRequest<{ ok: boolean; recommendation: DrawRecommendation }>('/api/draw/admin/recommendations/resolve', {
 		method: 'POST',
