@@ -175,7 +175,31 @@ let loadingMore = $state(false);
 	}
 
 	$effect(() => {
-		authToken = forumAuth.getToken();
+		let recMasonry: any = null;
+	$effect(() => {
+		if (recMasonryEl && recommendations.length > 0) {
+			const el = recMasonryEl;
+			setTimeout(() => {
+				import('masonry-layout').then(m => {
+					if (recMasonry) recMasonry.destroy();
+					recMasonry = new m.default(el, {
+						itemSelector: '.rec-item',
+						columnWidth: '.rec-sizer',
+						percentPosition: true,
+					});
+					const imgs = el.querySelectorAll('img');
+					let loaded = 0, total = imgs.length;
+					if (total === 0) return;
+					for (const img of imgs) {
+						if (img.complete) { loaded++; if (loaded === total) recMasonry.layout(); }
+						else img.addEventListener('load', () => { loaded++; if (loaded === total) recMasonry.layout(); });
+					}
+				});
+			}, 50);
+		}
+	});
+
+	authToken = forumAuth.getToken();
 		const u = drawEnv.baseUrl.subscribe((v) => (currentBaseUrl = v));
 		return u;
 	});
