@@ -28,6 +28,7 @@
 		otherStage = $bindable(''),
 		sameSeed = $bindable(false),
 		forkSeed = $bindable<number | undefined>(undefined),
+			turnstileToken = $bindable(''),
 	}: {
 		directPrompt?: string;
 		negativePrompt?: string;
