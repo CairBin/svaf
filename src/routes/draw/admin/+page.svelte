@@ -1233,7 +1233,7 @@ function formatTime(ts: number) {
 							<img src={getImageUrl(recDialogItem.image_path)} alt="" class="max-w-full max-h-[75vh] object-contain rounded-lg" />
 							<div class="flex items-center gap-3 mt-4 bg-background/80 backdrop-blur rounded-lg px-4 py-3">
 								<div class="text-xs text-muted-foreground mr-2">
-									UID: {recDialogItem.user_id ?? '?'}
+									UID: {recDialogItem.user_id ?? '?'} &nbsp; {recDialogItem.image_path}
 								</div>
 								<Button size="sm" variant="default" onclick={() => { resolveRec(recDialogItem.id, 'approve'); closeRecDialog(); }} disabled={loading}>
 									通过
