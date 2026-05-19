@@ -231,6 +231,19 @@
 	});
 
 
+	$effect(() => {
+		const el = sentinelEl;
+		if (!el) return;
+		io = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((e) => e.isIntersecting && !loadingMore && hasMore)) loadMoreImages();
+			},
+			{ rootMargin: '400px 0px' }
+		);
+		io.observe(el);
+		return () => io?.disconnect();
+	});
+
 	onDestroy(() => {
 		window.removeEventListener('resize', handleResize);
 	});
