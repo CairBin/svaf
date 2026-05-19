@@ -1078,7 +1078,7 @@ function formatTime(ts: number) {
 						</div>
 					</CardContent>
 				</Card>
-				<div class="sticky top-0 z-10 bg-background py-2 flex flex-wrap gap-2 items-center border-b">
+				<div class="sticky top-14 z-10 bg-background py-2 flex flex-wrap gap-2 items-center border-b">
 							<Button variant={selectMode ? 'default' : 'outline'} size="sm" onclick={() => { selectMode = !selectMode; }}>
 								<Icon icon="mdi:select" class="size-4 mr-1" />
 								{selectMode ? '取消选择' : '选择'}
@@ -1127,9 +1127,7 @@ function formatTime(ts: number) {
 											/>
 										</div>
 									{/if}
-												{#if img.deleted}
-													<span class="bg-red-600 text-white text-[9px] px-1 rounded font-bold">已删</span>
-												{/if}
+
 											<div class="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
 												<button
 													class="p-0.5 rounded bg-destructive/80 text-white hover:bg-destructive"
@@ -1141,7 +1139,7 @@ function formatTime(ts: number) {
 											</div>
 											<div class="absolute bottom-0 inset-x-0 flex">
 												<div class="flex-1 bg-black/60 text-white text-[10px] px-1 py-0.5 truncate pointer-events-none">
-													UID {img.user_id || '?'}
+													UID {img.user_id || '?'}{#if img.deleted} - <span class="text-red-400 font-bold">已删</span>{/if}
 												</div>
 												<button
 													class="bg-black/70 text-white text-[10px] px-1.5 py-0.5 hover:bg-black/90"
