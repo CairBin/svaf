@@ -54,6 +54,7 @@
 	let promptsOpen = $state(false);
 	let translating = $state(false);
 	let translateError = $state("");
+	let translateToken = $state("");
 	let llmPrompt = $state("");
 	let hasTranslated = $state(false);
 
