@@ -17,10 +17,17 @@
 
 	let containerEl: HTMLDivElement | undefined = $state();
 	let widgetId = $state<string | null>(null);
+	let prevTick = $state(0);
 
 	$effect(() => {
 		if (!siteKey || !containerEl) return;
-		if (tick) {} /* force re-render when tick changes */
+		if (tick !== prevTick) {
+			prevTick = tick;
+			if (widgetId && window.turnstile) {
+				try { window.turnstile.reset(widgetId); } catch {}
+			}
+			return;
+		}
 		const container = containerEl;
 		container.innerHTML = '';
 
