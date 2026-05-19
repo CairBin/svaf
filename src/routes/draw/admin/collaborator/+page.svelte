@@ -101,19 +101,26 @@
 	}
 
 	async function loadImages() {
+		console.log('[collab] loadImages called, loading=', imagesLoading, 'auth=', !!authToken);
 		if (imagesLoading) return;
 		imagesLoading = true;
+		console.log('[collab] fetching images...');
 		try {
 			const res = await collab.getAllImages(imagesLimit, 0);
+			console.log('[collab] API response:', res);
 			allImages = res.items;
 			imagesTotal = res.total;
 			imagesOffset = res.items.length;
 			imagesLoading = false;
 			hasMore = imagesOffset < imagesTotal;
+			console.log('[collab] rebuilding columns, total=', imagesTotal);
 			rebuildColumns();
+			console.log('[collab] done, imagesLoading=', imagesLoading);
 		} catch (e) {
-			console.error('collab loadImages error:', e); showMsg('error', e instanceof Error ? e.message : '加载失败');
+			console.error('[collab] loadImages ERROR:', e, 'msg:', (e as any).message);
+			showMsg('error', e instanceof Error ? e.message : '加载失败');
 		} finally {
+			console.log('[collab] finally block, setting imagesLoading=false');
 			imagesLoading = false;
 		}
 	}
@@ -171,15 +178,17 @@
 
 	$effect(() => {
 		authToken = forumAuth.getToken();
+		console.log("[collab] auth effect: token=", authToken ? authToken.slice(0,10)+"..." : null);
 		const u = drawEnv.baseUrl.subscribe((v) => (currentBaseUrl = v));
 		return u;
 	});
 
 	$effect(() => {
 		const tab = activeTab;
+		console.log('[collab] tab effect: tab=', tab, 'authToken=', !!authToken);
 		if (!authToken) return;
 		switch (tab) {
-			case 'images': loadImages(); break;
+			case 'images': console.log('[collab] tab switch -> loadImages'); loadImages(); break;
 			case 'nominations': loadMyNominations(); break;
 		}
 	});
