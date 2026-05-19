@@ -139,6 +139,15 @@
 			hasMore = imagesOffset < imagesTotal;
 			console.log('[collab] rebuilding columns, total=', imagesTotal);
 			rebuildColumns();
+			if (sentinelEl && !io) {
+				io = new IntersectionObserver(
+					(entries) => {
+						if (entries.some((e) => e.isIntersecting && !loadingMore && hasMore)) loadMoreImages();
+					},
+					{ rootMargin: '400px 0px' }
+				);
+				io.observe(sentinelEl);
+			}
 			console.log('[collab] done, imagesLoading=', imagesLoading);
 		} catch (e) {
 			console.error('[collab] loadImages ERROR:', e, 'msg:', (e as any).message);
@@ -221,19 +230,6 @@
 		window.addEventListener('resize', handleResize, { passive: true });
 	});
 
-	// Set up observer when sentinelEl becomes available
-	(() => {
-		const el = sentinelEl;
-		if (!el) return;
-		io = new IntersectionObserver(
-			(entries) => {
-				if (entries.some((e) => e.isIntersecting && !loadingMore && hasMore)) loadMoreImages();
-			},
-			{ rootMargin: '400px 0px' }
-		);
-		io.observe(el);
-		return () => io?.disconnect();
-	});
 
 	onDestroy(() => {
 		window.removeEventListener('resize', handleResize);
