@@ -126,10 +126,13 @@
 		const id = decodeURIComponent(hash.slice(1));
 		const poll = setInterval(() => {
 			const el = document.getElementById(id);
-			if (el) {
+			if (!el) return;
+			// 仅当元素不在视口内才滚动（避免 reload 时与浏览器原生 hash 定位冲突）
+			const rect = el.getBoundingClientRect();
+			if (rect.top < 0 || rect.top > window.innerHeight) {
 				el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-				clearInterval(poll);
 			}
+			clearInterval(poll);
 		}, 100);
 		setTimeout(() => clearInterval(poll), 5000);
 	});
