@@ -23,7 +23,8 @@ const redirects = {
 	'/esa': 'https://tianchi.aliyun.com/specials/promotion/freetier/esa?taskCode=25254&recordId=c856e61228828a0423417a767828d166',
 	'/plan': 'https://acofork.notion.site/2e11e011d4e5800fa050e8f7cf448347',
 	'/iku': 'https://ikuuu.de/',
-	'/hnr': 'https://subspace.shop/products/lin-pianpian-keychain-the-weeping-swan-ten-days-of-the-citys-fall?_pos=1&_sid=5ba9d94dd&_ss=r'
+	'/hnr': 'https://subspace.shop/products/lin-pianpian-keychain-the-weeping-swan-ten-days-of-the-citys-fall?_pos=1&_sid=5ba9d94dd&_ss=r',
+	'/bd': 'https://pan.baidu.com/s/5IumozyRtM1U66d41M0s9pg'
 };
 
 function generateRedirectHTML(destination, path) {
