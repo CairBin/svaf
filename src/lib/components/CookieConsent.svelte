@@ -177,7 +177,7 @@
 						<ul class="text-sm text-muted-foreground space-y-1 list-disc list-inside">
 							<li>Umami Analytics - 网站统计</li>
 							<li>Cloudflare Insights - 性能监控</li>
-							<li>Google Adsense - 广告展示</li>
+
 						</ul>
 					</div>
 				</div>
