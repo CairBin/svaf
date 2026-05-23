@@ -1528,6 +1528,7 @@ function formatTime(ts: number) {
 							{@render limitField('GPU 轮询间隔（ms）', 'gpu_poll_interval_ms', 'number')}
 							{@render limitField('GPU 缓存 TTL（ms）', 'gpu_cache_ttl_ms', 'number')}
 							{@render limitField('GC 间隔（小时）', 'gc_interval_hours', 'number')}
+							{@render limitField('Turnstile 验证', 'turnstile_enabled', 'boolean')}
 							<Button onclick={saveLimits} disabled={loading}>
 								<Icon icon="mdi:content-save" class="size-4 mr-1" />
 								保存配置
@@ -2018,11 +2019,16 @@ function formatTime(ts: number) {
 	onfork={handleAdminFork}
 />
 
-{#snippet limitField(label: string, key: keyof AdminLimits, type: 'number' | 'text')}
+{#snippet limitField(label: string, key: keyof AdminLimits, type: 'number' | 'text' | 'boolean')}
 	{#if limits}
 		<div class="flex items-center gap-3">
 			<Label class="text-xs w-40 shrink-0">{label}</Label>
-			{#if type === 'number'}
+			{#if type === 'boolean'}
+				<button
+					class="px-3 py-1 text-xs rounded border transition-colors {limits[key] ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}"
+					onclick={() => { if (limits) limits = { ...limits, [key]: !limits[key] }; }}
+				>{limits[key] ? '开启' : '关闭'}</button>
+			{:else if type === 'number'}
 				<Input
 					type="number"
 					value={limits[key]}
@@ -2031,7 +2037,8 @@ function formatTime(ts: number) {
 					}}
 					class="max-w-32"
 				/>
-							<Input
+			{:else}
+				<Input
 					type="text"
 					value={String(limits[key])}
 					oninput={(e) => {
