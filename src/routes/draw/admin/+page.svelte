@@ -168,7 +168,20 @@ let loadingMore = $state(false);
 
 	// Workflows
 	let workflows = $state<{ path: string; name: string; thumbnail: boolean; category: string }[]>([]);
+	let wfSearch = $state('');
 	let wfRenaming = $state('');
+
+	let wfFiltered = $derived(() => {
+		if (!wfSearch.trim()) return workflows;
+		const q = wfSearch.toLowerCase();
+		return workflows.filter(w => w.name.toLowerCase().includes(q) || w.category.toLowerCase().includes(q));
+	});
+
+	let wfGrouped = $derived(() => {
+		const list = wfFiltered();
+		const cats = [...new Set(list.map(w => w.category))];
+		return cats.map(cat => ({ category: cat, items: list.filter(w => w.category === cat) }));
+	});
 	let wfRenameValue = $state('');
 	let wfMetaEditWf = $state('');
 	let wfMetaEditCat = $state('');
@@ -2136,45 +2149,51 @@ function formatTime(ts: number) {
 							</Card>
 						{/if}
 
-						<!-- Workflow grid -->
-						{#if workflows.length > 0}
-							<div class="flex flex-wrap gap-2">
-								{#each workflows as wf (wf.path)}
-									<div class="inline-flex flex-col items-center gap-1 p-1.5 rounded-md border border-border hover:bg-accent transition-all group">
-										<button
-											class="relative size-12 rounded overflow-hidden shrink-0 bg-muted flex items-center justify-center cursor-pointer"
-											onclick={() => { document.getElementById(`wf-thumb-${wf.path}`)?.click(); }}
-											title="点击上传缩略图"
-										>
-											{#if wf.thumbnail}
-												<img src={getThumbnailUrl(wf.path)} alt="" class="w-full h-full object-cover" loading="lazy" />
-											{:else}
-												<Icon icon="mdi:image-plus-outline" class="size-5 text-muted-foreground" />
-											{/if}
-											<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-												<Icon icon="mdi:upload" class="size-4 text-white" />
-											</div>
-										</button>
-										<input type="file" accept="image/*" class="hidden" id="wf-thumb-{wf.path}" onchange={(e) => handleWfThumbnailUpload(e, wf.path)} />
+						<!-- Search -->
+						<Input bind:value={wfSearch} placeholder="搜索工作流..." class="h-8 text-xs" />
 
-										{#if wfRenaming === wf.path}
-											<input type="text" class="w-24 text-xs text-center border rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-												bind:value={wfRenameValue}
-												onkeydown={(e) => { if (e.key === 'Enter') commitWfRename(); if (e.key === 'Escape') wfRenaming = ''; }}
-												onblur={commitWfRename}
-											/>
-										{:else}
-											<span class="text-xs text-center truncate max-w-24 cursor-default"
-												title="双击重命名 | 右键编辑元数据"
-												ondblclick={() => startWfRename(wf.path)}
-												oncontextmenu={(e) => { e.preventDefault(); editWfMeta(wf.path); }}
-											>{wf.name}</span>
-										{/if}
+						<!-- Workflow grid grouped by category -->
+						{#if wfGrouped().length > 0}
+							{#each wfGrouped() as group}
+								<div>
+									<p class="text-xs text-muted-foreground font-medium mb-1">{group.category || '未分类'}</p>
+									<div class="flex flex-wrap gap-2">
+										{#each group.items as wf (wf.path)}
+											<div class="inline-flex flex-col items-center gap-1 p-1.5 rounded-md border border-border hover:bg-accent transition-all group">
+												<button class="relative size-12 rounded overflow-hidden shrink-0 bg-muted flex items-center justify-center cursor-pointer"
+													onclick={() => { document.getElementById(`wf-thumb-${wf.path}`)?.click(); }}
+													title="点击上传缩略图"
+												>
+													{#if wf.thumbnail}
+														<img src={getThumbnailUrl(wf.path)} alt="" class="w-full h-full object-cover" loading="lazy" />
+													{:else}
+														<Icon icon="mdi:image-off-outline" class="size-5 text-muted-foreground" />
+													{/if}
+													<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+														<Icon icon="mdi:upload" class="size-4 text-white" />
+													</div>
+												</button>
+												<input type="file" accept="image/*" class="hidden" id="wf-thumb-{wf.path}" onchange={(e) => handleWfThumbnailUpload(e, wf.path)} />
+												{#if wfRenaming === wf.path}
+													<input type="text" class="w-24 text-xs text-center border rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+														bind:value={wfRenameValue}
+														onkeydown={(e) => { if (e.key === 'Enter') commitWfRename(); if (e.key === 'Escape') wfRenaming = ''; }}
+														onblur={commitWfRename}
+													/>
+												{:else}
+													<span class="text-xs text-center truncate max-w-24 cursor-default"
+														title="双击重命名 | 右键编辑元数据"
+														ondblclick={() => startWfRename(wf.path)}
+														oncontextmenu={(e) => { e.preventDefault(); editWfMeta(wf.path); }}
+													>{wf.name}</span>
+												{/if}
+											</div>
+										{/each}
 									</div>
-								{/each}
-							</div>
+								</div>
+							{/each}
 						{:else}
-							<div class="text-sm text-muted-foreground py-4 text-center">无工作流</div>
+							<div class="text-sm text-muted-foreground py-4 text-center">{wfSearch ? '无匹配工作流' : '无工作流'}</div>
 						{/if}
 					</CardContent>
 				</Card>
