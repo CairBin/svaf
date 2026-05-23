@@ -229,7 +229,12 @@
 	<!-- Safety rating -->
 
 	<!-- Resolution presets -->
-	{#if resolutions.length > 0}
+		function selectRes(r: DrawResolution) {
+			width = r.w;
+			height = r.h;
+		}
+
+			{#if resolutions.length > 0}
 		<div class="space-y-1.5">
 			<Label class="text-xs font-medium">分辨率</Label>
 			<div class="flex flex-wrap gap-1.5">
