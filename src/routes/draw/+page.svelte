@@ -9,7 +9,7 @@
 	import { forumAuth } from '$lib/forum/stores/auth';
 	import { drawEnv, apiError, apiStatus, resolveApiRedirect } from '$lib/draw/stores/env';
 	import { connectStatusWs } from '$lib/draw/api/ws';
-	import { fetchMyImages, getImageUrl, getImageProxyUrl, forkOutputImage, recommendImage, deleteMyImage, fetchMyRecommendations, addToQueue, fetchMyQueue } from '$lib/draw/api/client';
+	import { fetchMyImages, getImageUrl, getImageProxyUrl, forkOutputImage, recommendImage, deleteMyImage, fetchMyRecommendations, addToQueue, fetchMyQueue, fetchWalletBalance, createWalletOrder } from '$lib/draw/api/client';
 	import { consumeFork } from '$lib/draw/stores/fork';
 	import { onMount, onDestroy } from 'svelte';
 	import type { WsStatusEvent, DrawWorkflow, DrawRecommendation } from '$lib/draw/types';
@@ -31,6 +31,10 @@
 	// State
 	let currentBaseUrl = $state('');
 	let onlineCount = $state(0);
+	let walletBalance = $state<number | null>(null);
+	let walletLoading = $state(false);
+	let rechargeOpen = $state(false);
+	let recharging = $state(false);
 	let queuing = $state(false);
 	let queueSuccess = $state("");
 	let queueError = $state("");
@@ -201,6 +205,14 @@
 			if (queueTimer) { clearInterval(queueTimer); queueTimer = null; }
 		}
 		return () => { if (queueTimer) { clearInterval(queueTimer); queueTimer = null; } };
+	});
+
+	$effect(() => {
+		if (isLoggedIn) {
+			loadWalletBalance();
+		} else {
+			walletBalance = null;
+		}
 	});
 
 	$effect(() => {
@@ -448,6 +460,25 @@ async function startGeneration() {
 			return `${Math.floor(diff / 3600)}小时前`;
 		}
 
+	async function loadWalletBalance() {
+		if (!isLoggedIn) return;
+		try {
+			const r = await fetchWalletBalance();
+			walletBalance = r.balance;
+		} catch { walletBalance = null; }
+	}
+
+	async function handleRecharge() {
+		if (recharging) return;
+		recharging = true;
+		try {
+			const r = await createWalletOrder();
+			window.open(r.pay_url, '_blank');
+			rechargeOpen = false;
+			setTimeout(loadWalletBalance, 5000);
+		} catch { } finally { recharging = false; }
+	}
+
 	function pushToShortest(path: string) {
 		let minIdx = 0;
 		for (let i = 1; i < columnHeights.length; i++) {
@@ -599,6 +630,11 @@ async function startGeneration() {
 				<Badge variant="destructive" class="text-xs">API 离线</Badge>
 			{:else if apiStatusValue === "online"}
 				<Badge variant="outline" class="text-xs text-green-500 border-green-500">API 在线</Badge>
+			{/if}
+			{#if isLoggedIn && walletBalance !== null}
+				<button onclick={() => rechargeOpen = true} class="inline-flex items-center gap-0.5 px-2 h-6 rounded-4xl text-xs font-medium border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors shrink-0">
+					⚡{walletBalance}
+				</button>
 			{/if}
 		</div>
 	</div>
@@ -943,5 +979,23 @@ async function startGeneration() {
 	</Dialog.Content>
 </Dialog.Root>
 
+<Dialog.Root open={rechargeOpen} onOpenChange={(o) => rechargeOpen = o}>
+	<Dialog.Content class="max-w-sm">
+		<Dialog.Header>
+			<Dialog.Title>⚡ 充值生图点数</Dialog.Title>
+			<Dialog.Description class="space-y-3">
+				<div class="rounded-lg border p-4 text-center">
+					<p class="text-2xl font-bold text-amber-500">6,000</p>
+					<p class="text-xs text-muted-foreground">生图点数</p>
+					<p class="text-sm mt-1">仅需 <span class="font-semibold">6 元</span></p>
+				</div>
+				<p class="text-xs text-muted-foreground">支付后点数自动到账，若未到账请稍候刷新页面。</p>
+				<Button class="w-full" onclick={handleRecharge} disabled={recharging}>
+					{recharging ? '正在跳转...' : '前往爱发电支付'}
+				</Button>
+			</Dialog.Description>
+		</Dialog.Header>
+	</Dialog.Content>
+</Dialog.Root>
 
 

@@ -223,6 +223,18 @@ export async function fetchMyRecommendations() {
 	return drawRequest<{ items: DrawRecommendation[]; total: number }>('/api/draw/my-recommendations');
 }
 
+export async function fetchWalletBalance() {
+	return drawRequest<{ balance: number; total_purchased: number }>('/api/wallet/balance');
+}
+
+export async function createWalletOrder() {
+	return drawRequest<{ pay_url: string; order_id: string }>('/api/wallet/create-order', { method: 'POST' });
+}
+
+export async function fetchPointsConfig() {
+	return drawRequest<{ text_to_image: number; image_to_image: number; llm_translate: number }>('/api/draw/admin/points-config');
+}
+
 function _appendToken(url: URL): string {
 	const token = forumAuth.getToken();
 	if (token) url.searchParams.set('token', token);
