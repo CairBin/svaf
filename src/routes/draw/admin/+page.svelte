@@ -903,9 +903,10 @@ $effect(() => {
 	async function loadWorkflowMeta() {
 		try {
 			const res = await admin.getWorkflowMeta();
-			workflowMeta = res.workflow_meta;
+			workflowMeta = res.workflow_meta || [];
 		} catch (e) {
 			showMsg('error', e instanceof Error ? e.message : '加载工作流元数据失败');
+			workflowMeta = [];
 		}
 	}
 
