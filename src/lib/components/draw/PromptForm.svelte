@@ -7,7 +7,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import TurnstileWidget from '$lib/components/TurnstileWidget.svelte';
-	import { fetchResolutions, fetchPresets, createPreset, deletePreset } from '$lib/draw/api/client';
+	import { fetchResolutions, fetchPresets, createPreset, updatePreset, deletePreset } from '$lib/draw/api/client';
 	import { drawEnv } from '$lib/draw/stores/env';
 	import { forumAuth } from '$lib/forum/stores/auth';
 	import { get } from 'svelte/store';
@@ -73,6 +73,8 @@
 	let presets = $state<Preset[]>([]);
 	let presetsLoaded = $state(false);
 	let presetDialogOpen = $state(false);
+	let editingPresetId = $state<string | null>(null);
+	let isEditing = $derived(editingPresetId !== null);
 	let newPresetName = $state('');
 	let newPresetContent = $state('');
 	let newPresetType = $state<'positive' | 'negative'>('positive');
@@ -101,11 +103,25 @@
 		}
 	}
 
-	async function handleCreatePreset() {
+	function openEditPreset(p: Preset) {
+		editingPresetId = p.id;
+		newPresetName = p.name;
+		newPresetContent = p.content;
+		newPresetType = p.type;
+		presetDialogOpen = true;
+	}
+
+	async function handleSavePreset() {
 		if (!newPresetName.trim() || !newPresetContent.trim()) return;
 		try {
-			const p = await createPreset({ name: newPresetName.trim(), content: newPresetContent.trim(), type: newPresetType });
-			presets = [...presets, p];
+			if (editingPresetId) {
+				const p = await updatePreset(editingPresetId, { name: newPresetName.trim(), content: newPresetContent.trim(), type: newPresetType });
+				presets = presets.map(pr => pr.id === editingPresetId ? p : pr);
+			} else {
+				const p = await createPreset({ name: newPresetName.trim(), content: newPresetContent.trim(), type: newPresetType });
+				presets = [...presets, p];
+			}
+			editingPresetId = null;
 			newPresetName = '';
 			newPresetContent = '';
 			newPresetType = 'positive';
@@ -284,7 +300,7 @@
 					<div class="space-y-1">
 						<div class="flex items-center justify-between">
 							<Label class="text-xs font-medium text-primary/80">正面预设</Label>
-							<button onclick={() => { newPresetName = ''; newPresetContent = ''; newPresetType = 'positive'; presetDialogOpen = true; }} class="text-xs text-primary hover:underline flex items-center gap-0.5">
+							<button onclick={() => { editingPresetId = null; newPresetName = ''; newPresetContent = ''; newPresetType = 'positive'; presetDialogOpen = true; }} class="text-xs text-primary hover:underline flex items-center gap-0.5">
 								<Icon icon="mdi:plus" class="size-3.5" />新建
 							</button>
 						</div>
@@ -292,6 +308,7 @@
 							{#each presets.filter(p => p.type === 'positive') as p}
 								<div class="flex items-center gap-0.5 group">
 									<button onclick={() => applyPreset(p)} class="text-left text-[11px] px-2 py-1 rounded border border-border hover:bg-accent hover:border-primary/50 transition-all whitespace-nowrap">{p.name}</button>
+									<button onclick={() => openEditPreset(p)} class="size-4 flex items-center justify-center rounded text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0" title="编辑"><Icon icon="mdi:pencil" class="size-2.5" /></button>
 									<button onclick={() => handleDeletePreset(p.id)} class="size-4 flex items-center justify-center rounded text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" title="删除"><Icon icon="mdi:close" class="size-2.5" /></button>
 								</div>
 							{/each}
@@ -303,7 +320,7 @@
 					<div class="space-y-1">
 						<div class="flex items-center justify-between">
 							<Label class="text-xs font-medium text-red-400/80">反面预设</Label>
-							<button onclick={() => { newPresetName = ''; newPresetContent = ''; newPresetType = 'negative'; presetDialogOpen = true; }} class="text-xs text-primary hover:underline flex items-center gap-0.5">
+							<button onclick={() => { editingPresetId = null; newPresetName = ''; newPresetContent = ''; newPresetType = 'negative'; presetDialogOpen = true; }} class="text-xs text-primary hover:underline flex items-center gap-0.5">
 								<Icon icon="mdi:plus" class="size-3.5" />新建
 							</button>
 						</div>
@@ -311,6 +328,7 @@
 							{#each presets.filter(p => p.type === 'negative') as p}
 								<div class="flex items-center gap-0.5 group">
 									<button onclick={() => applyPreset(p)} class="text-left text-[11px] px-2 py-1 rounded border border-border hover:bg-accent hover:border-red-300/50 transition-all whitespace-nowrap">{p.name}</button>
+									<button onclick={() => openEditPreset(p)} class="size-4 flex items-center justify-center rounded text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0" title="编辑"><Icon icon="mdi:pencil" class="size-2.5" /></button>
 									<button onclick={() => handleDeletePreset(p.id)} class="size-4 flex items-center justify-center rounded text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" title="删除"><Icon icon="mdi:close" class="size-2.5" /></button>
 								</div>
 							{/each}
@@ -389,10 +407,10 @@
 	</Button>
 </div>
 
-<Dialog.Root open={presetDialogOpen} onOpenChange={(o) => presetDialogOpen = o}>
+<Dialog.Root open={presetDialogOpen} onOpenChange={(o) => { if (!o) editingPresetId = null; presetDialogOpen = o; }}>
 	<Dialog.Content class="max-w-md">
 		<Dialog.Header>
-			<Dialog.Title>新建预设</Dialog.Title>
+			<Dialog.Title>{isEditing ? '编辑预设' : '新建预设'}</Dialog.Title>
 			<Dialog.Description class="text-xs text-muted-foreground">预设内容将在点击时追加到对应提示词末尾（最多 2000 字符）</Dialog.Description>
 		</Dialog.Header>
 		<div class="space-y-3 px-6 pb-4">
@@ -418,7 +436,7 @@
 				></textarea>
 				<div class="text-right text-[10px] text-muted-foreground">{newPresetContent.length}/2000</div>
 			</div>
-			<Button class="w-full" size="sm" onclick={handleCreatePreset} disabled={!newPresetName.trim() || !newPresetContent.trim()}>保存预设</Button>
+			<Button class="w-full" size="sm" onclick={handleSavePreset} disabled={!newPresetName.trim() || !newPresetContent.trim()}>保存预设</Button>
 		</div>
 	</Dialog.Content>
 </Dialog.Root>
