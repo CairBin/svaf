@@ -38,6 +38,7 @@
 	let plans = $state<Array<{ id: string; name: string; url: string; points: number }>>([]);
 	let pointsConfig = $state<{ text_to_image: number; image_to_image: number; llm_translate: number; signup_bonus: number; text_to_image_anima: number } | null>(null);
 	let walletTimer: ReturnType<typeof setInterval> | null = null;
+	let waiHelpOpen = $state(false);
 	let animaHelpOpen = $state(false);
 	let queuing = $state(false);
 	let queueSuccess = $state("");
@@ -745,7 +746,9 @@ async function startGeneration(mode = 'wai') {
 				<TabsContent value="txt2img" class="space-y-4 mt-4">
 					<Tabs bind:value={genTxtSubTab} class="w-full">
 						<TabsList class="w-full">
-							<TabsTrigger value="wai" class="flex-1 text-xs">WAI</TabsTrigger>
+							<TabsTrigger value="wai" class="flex-1 text-xs">WAI
+								<button onclick={(e) => { e.stopPropagation(); waiHelpOpen = true; }} class="inline-flex items-center justify-center size-4 rounded-full border border-muted-foreground/40 text-muted-foreground text-[10px] font-bold ml-1 hover:border-primary hover:text-primary transition-colors" title="关于 WAI">?</button>
+							</TabsTrigger>
 							<TabsTrigger value="anima" class="flex-1 text-xs">Anima
 								<button onclick={(e) => { e.stopPropagation(); animaHelpOpen = true; }} class="inline-flex items-center justify-center size-4 rounded-full border border-muted-foreground/40 text-muted-foreground text-[10px] font-bold ml-1 hover:border-primary hover:text-primary transition-colors" title="关于 Anima">?</button>
 							</TabsTrigger>
@@ -942,6 +945,21 @@ async function startGeneration(mode = 'wai') {
 					{/each}
 				{/if}
 				<p class="text-xs text-muted-foreground">支付后点数自动到账，若未到账请稍候刷新页面。</p>
+			</Dialog.Description>
+		</Dialog.Header>
+	</Dialog.Content>
+</Dialog.Root>
+
+<Dialog.Root open={waiHelpOpen} onOpenChange={(o) => waiHelpOpen = o}>
+	<Dialog.Content class="max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>ℹ️ 关于 WAI</Dialog.Title>
+			<Dialog.Description class="text-sm leading-relaxed">
+				<div class="space-y-2">
+					<div>仅支持 <strong>英文 Tag</strong>。</div>
+					<div>角色库：<a href="https://www.downloadmost.com/NoobAI-XL/danbooru-character/" target="_blank" rel="noopener noreferrer" class="text-primary underline">Danbooru Characters</a></div>
+					<div>画风库：<a href="https://www.downloadmost.com/NoobAI-XL/danbooru-artist/" target="_blank" rel="noopener noreferrer" class="text-primary underline">Danbooru Artists</a></div>
+				</div>
 			</Dialog.Description>
 		</Dialog.Header>
 	</Dialog.Content>
