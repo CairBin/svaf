@@ -654,6 +654,20 @@ async function startGeneration(mode = 'wai') {
 	}
 
 
+	async function handleBatchRecommend() {
+		if (selectedPaths.size === 0) return;
+		if (!confirm(`确定自荐选中的 ${selectedPaths.size} 张图片？`)) return;
+		try {
+			await Promise.all(Array.from(selectedPaths).map(p => recommendImage(p)));
+			alert('自荐成功，等待管理员审核');
+			selectMode = false;
+			selectedPaths = new Set();
+			loadMyRecommendations();
+		} catch (e) {
+			alert(e instanceof Error ? e.message : "批量自荐失败");
+		}
+	}
+
 	async function handleRecommend(path: string) {
 		try {
 			await recommendImage(path);
@@ -922,6 +936,9 @@ async function startGeneration(mode = 'wai') {
 									<Icon icon="mdi:checkbox-multiple-marked-outline" class="size-3.5 mr-1" />{selectMode ? '取消' : '选择'}
 								</Button>
 								{#if selectedPaths.size > 0}
+									<Button variant="outline" size="sm" onclick={handleBatchRecommend} disabled={queuing}>
+										<Icon icon="mdi:star-plus-outline" class="size-3.5 mr-1" />自荐 ({selectedPaths.size})
+									</Button>
 									<Button variant="destructive" size="sm" onclick={handleBatchDelete} disabled={queuing}>
 										<Icon icon="mdi:delete-outline" class="size-3.5 mr-1" />删除 ({selectedPaths.size})
 									</Button>
