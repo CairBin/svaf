@@ -40,6 +40,7 @@
 	let walletTimer: ReturnType<typeof setInterval> | null = null;
 	let waiHelpOpen = $state(false);
 	let animaHelpOpen = $state(false);
+	let dsOutage = $state(false);
 	let queuing = $state(false);
 	let queueSuccess = $state("");
 	let queueError = $state("");
@@ -253,6 +254,20 @@
 			pointsConfig = null;
 			if (walletTimer) { clearInterval(walletTimer); walletTimer = null; }
 		}
+	});
+	// Check DeepSeek status
+	if (typeof window !== 'undefined') {
+		fetch('https://status.deepseek.com/feed.rss')
+			.then(r => r.text())
+			.then(xml => {
+				const items = [...xml.matchAll(/<item>[\s\S]*?<\/item>/g)];
+				dsOutage = items.some(item => {
+					const title = item[0].match(/<title>(.*?)<\/title>/)?.[1] || '';
+					return title.toLowerCase().includes('outage') || title.toLowerCase().includes('degraded');
+				});
+			})
+			.catch(() => {});
+	}
 	});
 
 	$effect(() => {
@@ -733,6 +748,9 @@ async function startGeneration(mode = 'wai') {
 			{/if}
 			{#if globalBusy}
 				<Badge variant="default" class="text-xs animate-pulse">生成中</Badge>
+			{/if}
+			{#if dsOutage}
+				<Badge variant="destructive" class="text-xs" title="DeepSeek API 异常，LLM 翻译不可用">LLM 异常</Badge>
 			{/if}
 			{#if apiStatusValue === "checking"}
 				<Badge variant="outline" class="text-xs text-muted-foreground">API 检测中</Badge>
