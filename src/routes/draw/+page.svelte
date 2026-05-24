@@ -41,8 +41,6 @@
 	let waiHelpOpen = $state(false);
 	let animaHelpOpen = $state(false);
 	let dsOutage = $state(false);
-	let comfyuiOnline = $state<boolean | null>(null);
-	let comfyuiTimer: ReturnType<typeof setInterval> | null = null;
 	let queuing = $state(false);
 	let queueSuccess = $state("");
 	let queueError = $state("");
@@ -269,16 +267,6 @@
 				});
 			})
 			.catch(() => {});
-		// Check ComfyUI status every 10s
-		async function checkComfyui() {
-			try {
-				const r = await fetch(currentBaseUrl + '/api/comfyui/status');
-				const d = await r.json();
-				comfyuiOnline = d.status === 1;
-			} catch { comfyuiOnline = false; }
-		}
-		checkComfyui();
-		comfyuiTimer = setInterval(checkComfyui, 10000);
 	}
 
 	$effect(() => {
@@ -435,7 +423,7 @@ async function startGeneration(mode = 'wai') {
 				try {
 					await fetchWorkflowDetail(finalWfPath);
 				} catch {
-					queueError = '工作流不可用（ComfyUI 可能未运行），请稍后重试';
+					queueError = '指定的工作流不存在，请重新选择工作流';
 					return;
 				}
 			}
@@ -461,7 +449,7 @@ async function startGeneration(mode = 'wai') {
 				if (!queueTimer) queueTimer = setInterval(loadMyQueue, 1000);
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : '加入队列失败';
-				queueError = msg.includes('404') || msg.includes('not found') || msg.includes('workflow') ? '工作流不可用（ComfyUI 可能未运行），请稍后重试' : msg;
+				queueError = msg.includes('404') || msg.includes('not found') || msg.includes('workflow') ? '指定的工作流不存在，请重新选择工作流' : msg;
 			} finally {
 				queuing = false;
 			}
@@ -683,7 +671,6 @@ async function startGeneration(mode = 'wai') {
 
 	onDestroy(() => {
 		io?.disconnect();
-		if (comfyuiTimer) clearInterval(comfyuiTimer);
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('resize', handleResize);
 		}
@@ -764,9 +751,6 @@ async function startGeneration(mode = 'wai') {
 			{#if dsOutage}
 				<Badge variant="destructive" class="text-xs" title="DeepSeek API 异常，LLM 翻译不可用">LLM 异常</Badge>
 			{/if}
-			{#if comfyuiOnline === false}
-				<Badge variant="destructive" class="text-xs" title="无法连接至 ComfyUI">ComfyUI 离线</Badge>
-			{/if}
 			{#if apiStatusValue === "checking"}
 				<Badge variant="outline" class="text-xs text-muted-foreground">API 检测中</Badge>
 			{:else if apiStatusValue === "offline"}
@@ -787,13 +771,6 @@ async function startGeneration(mode = 'wai') {
 
 
 	<!-- Auth warning -->
-	{#if comfyuiOnline === false}
-		<Alert variant="destructive">
-			<Icon icon="mdi:cloud-alert" class="size-4" />
-			<AlertDescription class="text-xs">无法连接至 ComfyUI，您是否启动它了？若您是用户，请提醒管理员启动。</AlertDescription>
-		</Alert>
-	{/if}
-
 	{#if !isLoggedIn}
 		<Alert>
 			<Icon icon="mdi:account-alert-outline" class="size-4" />
