@@ -56,13 +56,11 @@
 	let styleName = $state('');
 	let directPrompt = $state('');
 	let workflowPrompt = $state("");
-	let inlineWorkflowApi = $state<Record<string, any> | null>(null);
 	let workflowNegativePrompt = $state("");
 	let negativePrompt = $state('');
 	let nlPrompt = $state('');
 	let width = $state(0);
 	let height = $state(0);
-	let inlineWorkflow = $state<object | null>(null);
 	let forkSeed = $state<number | undefined>(undefined);
 	let sameSeed = $state(false);
 
@@ -97,8 +95,7 @@
 					if (d.default_width) width = d.default_width;
 					if (d.default_height) height = d.default_height;
 					if (d.seed) forkSeed = d.seed;
-					inlineWorkflowApi = d.workflow_api || null;
-					inlineWorkflow = null;
+
 					if (d.workflow_path) workflowPath = d.workflow_path;
 					if (d.workflow_name) workflowName = d.workflow_name;
 					if (d.style_tags) { styleTags = d.style_tags; styleName = d.style_tags; }
@@ -270,16 +267,14 @@
 		const res = consumeFork();
 			console.log('[FORK] $effect after consumeFork');
 		if (res) {
-					inlineWorkflow = res.workflow && Object.keys(res.workflow || {}).length ? res.workflow : null;
-				inlineWorkflowApi = res.workflow_api || null;
-			if (res.builtin_prompt) { directPrompt = res.builtin_prompt; workflowPrompt = res.builtin_prompt; }
+				if (res.builtin_prompt) { directPrompt = res.builtin_prompt; workflowPrompt = res.builtin_prompt; }
 			if (res.builtin_negative_prompt) { negativePrompt = res.builtin_negative_prompt; workflowNegativePrompt = res.builtin_negative_prompt; }
 			if (res.default_width) width = res.default_width;
 			if (res.default_height) height = res.default_height;
 			forkSeed = res.seed;
 			if (res.workflow_path && res.workflow_path !== 'fork') workflowPath = res.workflow_path;
 			if (res.workflow_name) workflowName = res.workflow_name;
-				else workflowName = inlineWorkflow ? '(fork)' : '';
+				else workflowName = workflowPath ? workflowPath.split('/').pop()?.replace(/\.(json|txt)$/, '') || '(fork)' : '(fork)';
 			if (res.style_tags) {
 				styleTags = res.style_tags;
 				styleName = res.style_tags;
@@ -347,8 +342,6 @@
 		try {
 			const res = await forkOutputImage(path);
 			console.log('[FORK] API done', res);
-			inlineWorkflow = null;
-			inlineWorkflowApi = res.workflow_api || null;
 			if (res.builtin_prompt) directPrompt = res.builtin_prompt;
 			if (res.builtin_negative_prompt) negativePrompt = res.builtin_negative_prompt;
 			if (res.default_width) width = res.default_width;
@@ -356,7 +349,7 @@
 			forkSeed = res.seed;
 			if (res.workflow_path && res.workflow_path !== 'fork') workflowPath = res.workflow_path;
 			if (res.workflow_name) workflowName = res.workflow_name;
-			else workflowName = inlineWorkflow ? '(fork)' : '';
+			else workflowName = workflowPath ? workflowPath.split('/').pop()?.replace(/\.(json|txt)$/, '') || '(fork)' : '(fork)';
 			if (res.style_tags) {
 				styleTags = res.style_tags;
 				styleName = res.style_tags;
@@ -364,7 +357,7 @@
 				styleTags = '';
 				styleName = '';
 			}
-			localStorage.setItem('draw-fork-pending', JSON.stringify({ workflow_api: res.workflow_api || null, builtin_prompt: res.builtin_prompt || '', builtin_negative_prompt: res.builtin_negative_prompt || '', default_width: res.default_width || null, default_height: res.default_height || null, seed: res.seed, style_tags: res.style_tags || '', workflow_path: res.workflow_path || '', workflow_name: res.workflow_name || '' }));
+			localStorage.setItem('draw-fork-pending', JSON.stringify({ workflow_api: null, builtin_prompt: res.builtin_prompt || '', builtin_negative_prompt: res.builtin_negative_prompt || '', default_width: res.default_width || null, default_height: res.default_height || null, seed: res.seed, style_tags: res.style_tags || '', workflow_path: res.workflow_path || '', workflow_name: res.workflow_name || '' }));
 			forkMessage = 'Fork 成功';
 			console.log('[FORK] success done');
 		} catch (e: any) {
@@ -378,7 +371,7 @@ async function startGeneration(mode = 'wai') {
 				alert('请先在论坛登录');
 				return;
 			}
-			if (!workflowPath && !inlineWorkflow) {
+			if (!workflowPath) {
 				alert('请选择工作流');
 				}
 				if (false) {
@@ -419,7 +412,6 @@ async function startGeneration(mode = 'wai') {
 					negative_prompt: negativePrompt || undefined,
 					seed: sameSeed ? forkSeed : undefined,
 					workflow_path: finalWfPath,
-					inline_workflow: inlineWorkflow || undefined,
 					mode,
 				turnstile_token: turnstileToken || undefined,
 				});
