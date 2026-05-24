@@ -9,7 +9,7 @@
 	import { forumAuth } from '$lib/forum/stores/auth';
 	import { drawEnv, apiError, apiStatus, resolveApiRedirect } from '$lib/draw/stores/env';
 	import { connectStatusWs } from '$lib/draw/api/ws';
-	import { fetchMyImages, getImageUrl, getImageProxyUrl, forkOutputImage, recommendImage, deleteMyImage, fetchMyRecommendations, addToQueue, fetchMyQueue, fetchWalletBalance, createWalletOrder, fetchPlans, fetchPointsConfig } from '$lib/draw/api/client';
+	import { fetchMyImages, getImageUrl, getImageProxyUrl, forkOutputImage, recommendImage, deleteMyImage, fetchMyRecommendations, addToQueue, fetchMyQueue, fetchWalletBalance, createWalletOrder, fetchPlans, fetchPointsConfig, fetchWorkflowDetail } from '$lib/draw/api/client';
 	import { consumeFork } from '$lib/draw/stores/fork';
 	import { onMount, onDestroy } from 'svelte';
 	import type { WsStatusEvent, DrawWorkflow, DrawRecommendation } from '$lib/draw/types';
@@ -395,6 +395,16 @@ async function startGeneration(mode = 'wai') {
 			if (finalWfPath.endsWith('.txt')) {
 				const subdir = mode === 'anima' ? 'ANIMA' : 'WAI';
 				finalWfPath = `${subdir}/通用/无Lora.json`;
+			}
+
+			// Pre-check: verify workflow exists on backend
+			if (finalWfPath.endsWith('.json') && !finalWfPath.startsWith('tags/')) {
+				try {
+					await fetchWorkflowDetail(finalWfPath);
+				} catch {
+					queueError = '指定的工作流不存在，请重新选择工作流';
+					return;
+				}
 			}
 
 			queuing = true;
