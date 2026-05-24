@@ -59,11 +59,15 @@
 		$effect(() => {
 			if (workflows.length > 0 && value && !inited) {
 				inited = true;
-				// Auto-expand category containing current value
 				const wf = workflows.find(w => w.path === value);
 				if (wf) { expandedCategories.add(wf.category); expandedCategories = new Set(expandedCategories); }
-				fetchWorkflowDetail(value, undefined, subdir).then((detail: any) => {
-					onpromptload?.(detail.builtin_prompt, detail.builtin_negative_prompt);
+				abortCtrl?.abort();
+				const ctrl = new AbortController();
+				abortCtrl = ctrl;
+				fetchWorkflowDetail(value, ctrl.signal, subdir).then((detail: any) => {
+					if (!ctrl.signal.aborted) {
+						onpromptload?.(detail.builtin_prompt, detail.builtin_negative_prompt);
+					}
 				}).catch(() => {});
 			}
 		});
@@ -86,19 +90,20 @@
 		onselect?.(wf);
 
 		abortCtrl?.abort();
-		abortCtrl = new AbortController();
+		const ctrl = new AbortController();
+		abortCtrl = ctrl;
 		loadingPath = wf.path;
 
-				fetchWorkflowDetail(wf.path, abortCtrl.signal, subdir)
+		fetchWorkflowDetail(wf.path, ctrl.signal, subdir)
 			.then((detail: any) => {
-				if (!abortCtrl?.signal.aborted) {
+				if (!ctrl.signal.aborted) {
 					onpromptload?.(detail.builtin_prompt, detail.builtin_negative_prompt);
 					loadingPath = '';
 				}
 			})
 			.catch((e) => {
 				if (e?.name === 'AbortError') return;
-				if (!abortCtrl?.signal.aborted) {
+				if (!ctrl.signal.aborted) {
 					loadingPath = '';
 				}
 			});
