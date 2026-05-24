@@ -1772,8 +1772,6 @@ function formatTime(ts: number) {
 								<div class="text-xs text-muted-foreground">
 									<div>队列项目总数: {debugData.recent_items_count ?? '?'}</div>
 								</div>
-									</table>
-								</div>
 							</div>
 						{/if}
 					</CardContent>
