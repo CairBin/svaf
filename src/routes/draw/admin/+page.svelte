@@ -67,6 +67,33 @@ let loadingMore = $state(false);
 	// Recommendations
 	let recommendations = $state<DrawRecommendation[]>([]);
 	let recRejectReasons = $state<Record<string, string>>({});
+	let recSelectMode = $state(false);
+	let recSelected = $state(new Set<string>());
+	let batchRejectReason = $state('');
+
+	function toggleRecSelect(id: string) {
+		const s = new Set(recSelected);
+		if (s.has(id)) s.delete(id); else s.add(id);
+		recSelected = s;
+	}
+
+	async function batchResolveRecs(action: 'approve' | 'reject') {
+		if (recSelected.size === 0) return;
+		if (action === 'reject' && !batchRejectReason.trim() && !confirm('拒绝理由为空，确定继续？')) return;
+		loading = true;
+		try {
+			await admin.resolveRecommendations([...recSelected], action, action === 'reject' ? batchRejectReason.trim() : undefined);
+			recommendations = recommendations.filter(r => !recSelected.has(r.id));
+			recSelected = new Set();
+			batchRejectReason = '';
+			if (!recSelected.size) recSelectMode = false;
+			showMsg('success', `已${action === 'approve' ? '通过' : '拒绝'} ${recSelected.size} 个`);
+		} catch (e) {
+			showMsg('error', e instanceof Error ? e.message : '操作失败');
+		} finally {
+			loading = false;
+		}
+	}
 
 	// Featured
 	let featuredPaths = $state<string[]>([]);
@@ -1100,10 +1127,23 @@ function formatTime(ts: number) {
 							<Badge variant="secondary">{recommendations.length}</Badge>
 						{/if}
 					</h3>
-					<Button variant="ghost" size="sm" onclick={loadRecommendations} disabled={loading}>
-						<Icon icon="mdi:refresh" class="size-4" />
-					</Button>
+					<div class="flex items-center gap-1">
+						<Button variant={recSelectMode ? 'default' : 'outline'} size="sm" onclick={() => { recSelectMode = !recSelectMode; if (!recSelectMode) recSelected = new Set(); }}>
+							<Icon icon="mdi:checkbox-multiple-marked-outline" class="size-3.5 mr-1" />{recSelectMode ? '取消' : '选择'}
+						</Button>
+						<Button variant="ghost" size="sm" onclick={loadRecommendations} disabled={loading}>
+							<Icon icon="mdi:refresh" class="size-4" />
+						</Button>
+					</div>
 				</div>
+				{#if recSelectMode && recSelected.size > 0}
+					<div class="flex flex-wrap items-center gap-2 mb-3 p-2 rounded-lg border bg-muted/30">
+						<span class="text-xs text-muted-foreground">已选 {recSelected.size} 个</span>
+						<Button size="sm" variant="default" onclick={() => batchResolveRecs('approve')} disabled={loading}>通过选中</Button>
+						<Input bind:value={batchRejectReason} placeholder="拒绝理由" class="h-8 text-xs min-w-0 w-40" />
+						<Button size="sm" variant="destructive" onclick={() => batchResolveRecs('reject')} disabled={loading}>拒绝选中</Button>
+					</div>
+				{/if}
 				{#if recommendations.length === 0}
 					<div class="text-sm text-muted-foreground py-8 text-center">无待审核自荐</div>
 					{:else}
@@ -1111,11 +1151,16 @@ function formatTime(ts: number) {
 						<div class="rec-sizer w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/5"></div>
 						{#each recommendations as rec, i (rec.id || i)}
 							<div class="rec-item w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/5 p-1">
-								<div class="relative group rounded-lg overflow-hidden border hover:ring-2 hover:ring-primary/50 transition-all cursor-pointer"
+								<div class="relative group rounded-lg overflow-hidden border hover:ring-2 hover:ring-primary/50 transition-all cursor-pointer {recSelected.has(rec.id) ? 'ring-2 ring-primary' : ''}"
 									role="button" tabindex="0"
-									onclick={() => openRecDialog(rec, i)}
+									onclick={() => { if (recSelectMode) toggleRecSelect(rec.id); else openRecDialog(rec, i); }}
 								>
 									<img src={getImageProxyUrl(rec.image_path)} alt="" loading="lazy" decoding="async" class="block w-full h-auto bg-muted" />
+									{#if recSelectMode}
+										<div class="absolute top-1 left-1 flex items-center justify-center" onclick={(e) => { e.stopPropagation(); toggleRecSelect(rec.id); }}>
+											<input type="checkbox" checked={recSelected.has(rec.id)} onchange={() => toggleRecSelect(rec.id)} class="size-4 accent-primary" />
+										</div>
+									{/if}
 								</div>
 							</div>
 						{/each}

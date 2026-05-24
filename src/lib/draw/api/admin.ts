@@ -237,6 +237,13 @@ export async function resolveRecommendation(recId: string, action: 'approve' | '
 	});
 }
 
+export async function resolveRecommendations(recIds: string[], action: 'approve' | 'reject', reason?: string) {
+	return drawRequest<{ ok: boolean; resolved: number }>('/api/draw/admin/recommendations/resolve-batch', {
+		method: 'POST',
+		json: { rec_ids: recIds, action, reason: reason || '' }
+	});
+}
+
 	// --- Collaborators ---
 
 	export async function getCollaborators() {
