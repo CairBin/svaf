@@ -305,11 +305,12 @@
 		styleName = name;
 	}
 
-	function handlePromptLoad(positive: string, negative: string) {
+	function handlePromptLoad(positive: string, negative: string, workflowApi?: Record<string, any>) {
 			directPrompt = positive;
 			negativePrompt = negative;
 			workflowPrompt = positive;
 			workflowNegativePrompt = negative;
+			if (workflowApi) inlineWorkflowApi = workflowApi;
 			localStorage.setItem('wf_prompt', positive);
 			localStorage.setItem('wf_neg_prompt', negative);
 		}

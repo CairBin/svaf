@@ -4,6 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { fetchWorkflows, fetchWorkflowDetail, getThumbnailUrl } from '$lib/draw/api/client';
 	import type { DrawWorkflow } from '$lib/draw/types';
+	import type { DrawWorkflowDetail } from '$lib/draw/types';
 
 	let {
 		value = $bindable(''),
@@ -11,11 +12,11 @@
 		onpromptload,
 		showTitle = true,
 		constrainHeight = true,
-		subdir = 'WAI'
+		subdir = ''
 	}: {
 		value?: string;
 		onselect?: (wf: DrawWorkflow) => void;
-		onpromptload?: (positive: string, negative: string) => void;
+		onpromptload?: (positive: string, negative: string, workflowApi?: Record<string, any>) => void;
 		showTitle?: boolean;
 		constrainHeight?: boolean;
 		subdir?: string;
@@ -62,8 +63,8 @@
 				// Auto-expand category containing current value
 				const wf = workflows.find(w => w.path === value);
 				if (wf) { expandedCategories.add(wf.category); expandedCategories = new Set(expandedCategories); }
-				fetchWorkflowDetail(value, undefined, subdir).then(detail => {
-					onpromptload?.(detail.builtin_prompt, detail.builtin_negative_prompt);
+				fetchWorkflowDetail(value, undefined, subdir).then((detail: any) => {
+					onpromptload?.(detail.builtin_prompt, detail.builtin_negative_prompt, detail.workflow_api);
 				}).catch(() => {});
 			}
 		});
@@ -90,9 +91,9 @@
 		loadingPath = wf.path;
 
 		fetchWorkflowDetail(wf.path, abortCtrl.signal, subdir)
-			.then((detail) => {
+			.then((detail: any) => {
 				if (!abortCtrl?.signal.aborted) {
-					onpromptload?.(detail.builtin_prompt, detail.builtin_negative_prompt);
+					onpromptload?.(detail.builtin_prompt, detail.builtin_negative_prompt, detail.workflow_api);
 					loadingPath = '';
 				}
 			})
